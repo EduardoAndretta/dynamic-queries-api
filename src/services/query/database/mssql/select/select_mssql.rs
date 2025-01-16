@@ -68,7 +68,6 @@ impl SelectMssql {
                     let (relationship_path, column) = field.split_at(pos);
                     let column = &column[1..];
     
-                    // Handle nested relationships
                     let related_field = Self::process_related_field(
                         relationship_path,
                         column,
@@ -78,7 +77,7 @@ impl SelectMssql {
                     )?;
                     select_fields.push(related_field);
                 } else {
-                    // Handle direct columns
+
                     if let Some(col_metadata) = metadata.columns.get(field) {
                         let alias = query_alias_manager.get_or_create_field_alias(field);
                         select_fields.push(format!(
@@ -91,7 +90,6 @@ impl SelectMssql {
                 }
             }
         } else {
-            println!("No $select provided, using all columns.");
             for col_metadata in metadata.columns.values() {
                 let alias = query_alias_manager.get_or_create_field_alias(&col_metadata.column_name);
                 select_fields.push(format!(
@@ -101,7 +99,7 @@ impl SelectMssql {
             }
         }
     
-        sql.push_str(&select_fields.join(",\n    "));
+        sql.push_str(&select_fields.join(", "));
         sql.push_str("\n");
     
         // FROM clause
@@ -129,7 +127,6 @@ impl SelectMssql {
                     let relational_alias = query_alias_manager.get_or_create_table_alias(relationship_path);
                     let alias = format!("{}.{}", full_relationship_path, first_column_part);
     
-                    // Generate a short alias for the field
                     let field_alias = query_alias_manager.get_or_create_field_alias(&alias);
     
                     return Ok(format!(
