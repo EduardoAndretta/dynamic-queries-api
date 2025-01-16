@@ -7,29 +7,64 @@ pub mod query {
         pub mod sqlite {
             pub mod sqlite_query;
 
-            pub mod select {
-                pub mod select_sqlite;
+            pub mod common {
+                pub mod tokens {
+                    pub mod filter {
+                        pub mod token;
+                    }
+                    pub mod expand {
+                        pub mod token;
+                    }
+                    pub mod select {
+                        pub mod token;
+                    }
+                    pub mod orderby {
+                        pub mod token;
+                    }
+                }
             }
 
-            pub mod filter {
-                pub mod filter_sqlite;
-            }
+            pub mod operations {
+                pub mod select {
+                    pub mod select_sqlite;
 
-            pub mod expand {
-                pub mod expand_sqlite;
-            }
+                    pub mod token {
+                        pub mod tokenization;
+                    }
+                }
+    
+                pub mod filter {
+                    pub mod filter_sqlite;
+    
+                    pub mod token {
+                        pub mod tokenization;
+                    }
+                }
+    
+                pub mod expand {
+                    pub mod expand_sqlite;
 
-            pub mod orderby {
-                pub mod orderby_sqlite;
-            }
+                    pub mod token {
+                        pub mod tokenization;
+                    }
+                }
+    
+                pub mod orderby {
+                    pub mod orderby_sqlite;
 
-            pub mod top {
-                pub mod top_sqlite;
-            }
-
-            pub mod skip {
-                pub mod skip_sqlite;
-            }
+                    pub mod token {
+                        pub mod tokenization;
+                    }
+                }
+    
+                pub mod top {
+                    pub mod top_sqlite;
+                }
+    
+                pub mod skip {
+                    pub mod skip_sqlite;
+                }
+            } 
         }
     
         pub mod mssql {

@@ -16,18 +16,16 @@ pub struct SqliteDatabase(pub SqlitePool);
 impl Database for SqliteDatabase {
     async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String> {   
         
-        let mut query_alias_manger = QueryAliasManager::new();
+        let mut alias_manger = QueryAliasManager::new();
 
-        SqliteQuery.validate_query::<T>(options)?;
-
-        let query = SqliteQuery.build_query::<T>(options, &mut query_alias_manger)?;
+        let query = SqliteQuery.build_query::<T>(options, &mut alias_manger)?;
         
         let rows = sqlx::query(&query)
             .fetch_all(&self.0)
             .await
             .map_err(|e| format!("Error executing query: {}", e))?;
 
-        let properties_hierarchy = Self::parse_properties_hierarchy::<T>(&rows, &query_alias_manger);
+        let properties_hierarchy = Self::parse_properties_hierarchy::<T>(&rows, &alias_manger);
 
         let mut results = Vec::new();
     
@@ -48,12 +46,12 @@ impl Database for SqliteDatabase {
 impl SqliteDatabase {
     fn parse_properties_hierarchy<T: EntityMetadata>(
         rows: &Vec<SqliteRow>,
-        query_alias_manager: &QueryAliasManager,
+        alias_manager: &QueryAliasManager,
     ) -> DynamicStruct {
         let metadata = T::metadata();
     
-        let alias_map = query_alias_manager.get_field_alias();
-    
+        let alias_map = alias_manager.get_field_alias();
+
         let column_names: Vec<String> = if let Some(first_row) = rows.first() {
             first_row.columns().iter()
                 .map(|column| {
@@ -66,7 +64,7 @@ impl SqliteDatabase {
         } else {
             Vec::new()
         };
-    
+
         let mut properties_hierarchy = DynamicStruct::new();
     
         let mut added_keys: std::collections::HashSet<String> = std::collections::HashSet::new();

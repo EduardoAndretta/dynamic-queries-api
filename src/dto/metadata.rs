@@ -7,6 +7,15 @@ pub struct ColumnMetadata {
     pub column_type: TypeId,
 }
 
+impl Default for ColumnMetadata {
+    fn default() -> Self {
+        ColumnMetadata {
+            column_name: "".to_string(),
+            column_type: TypeId::of::<String>()
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum RelationshipType {
     OneToOne,

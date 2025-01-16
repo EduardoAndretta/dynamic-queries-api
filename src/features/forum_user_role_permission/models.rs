@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{forum::models::ForumModel, permission::models::PermissionModel, relation::models::RelationModel, role::models::RoleModel}};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{forum::models::ForumModel, permission::models::PermissionModel, role::models::RoleModel, user::models::UserModel}};
 
 #[derive(Serialize, Deserialize)]
 pub struct ForumUserRolePermissionModel {
@@ -85,7 +85,7 @@ impl EntityMetadata for ForumUserRolePermissionModel {
                 relationships.insert(
                     "User".to_string(),
                     RelationshipMetadata {
-                        related_entity_metadata: RelationModel::metadata().clone(),
+                        related_entity_metadata: UserModel::metadata().clone(),
                         related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
