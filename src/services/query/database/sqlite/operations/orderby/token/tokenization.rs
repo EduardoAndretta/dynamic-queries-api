@@ -1,7 +1,8 @@
 use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use dynamic_queries_api::EventfulPeekable;
 
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata}, services::query::database::sqlite::common::tokens::orderby::token::Token};
+use crate::database::sqlite::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerColumnMetadata};
+use crate::services::query::database::sqlite::common::tokens::orderby::token::Token;
 
 pub struct Tokenization;
 
@@ -33,7 +34,7 @@ impl Tokenization {
         Ok(tokens)
     }
 
-    fn resolve_nested_metadata(metadata: &EntityDescription, token: &str) -> Result<(EntityDescription, ColumnMetadata), String> {
+    fn resolve_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         let parts: Vec<&str> = token.split('/').collect();
 
         if parts.len() < 2 {
@@ -62,6 +63,12 @@ impl Tokenization {
                     .relationships
                     .get(*part)
                     .ok_or_else(|| format!("Invalid related entity: {}", part))?;
+
+                 // [Expanded]
+                 if !relationship.expanded {
+                    return Err(format!("Non expanded relation: {}", part));
+                }
+
                 current_metadata = relationship.related_entity_metadata.clone();
             }
         }
@@ -69,7 +76,7 @@ impl Tokenization {
         Err(format!("Unexpected error resolving metadata for token: {}", token))
     }
 
-    fn resolve_non_nested_metadata(metadata: &EntityDescription, token: &str) -> Result<(EntityDescription, ColumnMetadata), String> {
+    fn resolve_non_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         
         let metadata = metadata.clone();
 
@@ -82,7 +89,7 @@ impl Tokenization {
             return Ok((metadata, column_metadata));
     }
 
-    fn get_metadata(metadata: &EntityDescription, token: &str) -> Result<(EntityDescription, ColumnMetadata), String> {
+    fn get_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         if token.contains('/') {
             Self::resolve_nested_metadata(metadata, token)
         } else {
@@ -90,14 +97,15 @@ impl Tokenization {
         }
     }
 
-    pub fn tokenize<T: EntityMetadata>(text: &str) -> Result<Vec<Token>, String> {
-        let metadata = T::metadata();
+    pub fn tokenize(text: &str, contextualizer: &ContextualizerMetadata) -> Result<Vec<Token>, String> {
     
         let mut tokens: Vec<Token> = Vec::new();
 
         let mut previous_properties: HashSet<String> = HashSet::new();
     
         let splited: &[String] = &Self::split(text)?;
+
+        let metadata = contextualizer.get_context();
 
         // [Context]
         let context: Rc<RefCell<String>> = Rc::new(RefCell::new(String::new()));

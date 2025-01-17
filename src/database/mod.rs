@@ -2,11 +2,32 @@ use serde_json::Value;
 use crate::dto::query_params::QueryParams;
 use crate::dto::metadata::EntityMetadata;
 
-pub use crate::database::mssql_database::MssqlDatabase;
-pub use crate::database::sqlite_database::SqliteDatabase;
+use crate::database::{mssql::database::Database as MssqlDatabase, sqlite::database::Database as SqliteDatabase};
 
-mod mssql_database;
-mod sqlite_database;
+pub mod mssql {
+    pub mod common {
+        pub mod context {
+            pub mod mapping {
+                pub mod metadata_mapping;
+            }
+            pub mod contextualizer;
+        }
+    }
+    pub mod database;
+}
+
+pub mod sqlite {
+    pub mod common {
+        pub mod context {
+            pub mod mapping {
+                pub mod metadata_mapping;
+            }
+            pub mod contextualizer;
+        }
+    }
+    pub mod database;
+}
+
 
 pub trait Database {
     async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String>;

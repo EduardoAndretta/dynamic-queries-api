@@ -3,8 +3,8 @@ use lazy_static::lazy_static;
 use chrono::{NaiveDate, NaiveDateTime};
 use dynamic_queries_api::EventfulPeekable;
 
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerColumnMetadata};
-use crate::services::query::database::sqlite::common::tokens::filter::token::{Token, Parentheses, Increment, Operation};
+use crate::database::mssql::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerColumnMetadata};
+use crate::services::query::database::mssql::common::tokens::filter::token::{Token, Increment, Operation, Parentheses};
 
 lazy_static! {
     static ref OPERATORS: HashSet<&'static str> = {

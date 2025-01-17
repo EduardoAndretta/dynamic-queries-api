@@ -1,4 +1,4 @@
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ContextualizerEntityDescription};
+use crate::database::mssql::common::context::contextualizer::{ContextualizerColumnMetadata, ContextualizerEntityDescription};
 
 #[derive(Debug, Clone)]
 pub enum Token {

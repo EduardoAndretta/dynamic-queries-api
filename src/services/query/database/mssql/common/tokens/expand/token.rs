@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerRelationshipMetadata, ContextualizerEntityDescription};
+use crate::database::mssql::common::context::contextualizer::{ContextualizerRelationshipMetadata, ContextualizerEntityDescription};
 
 #[derive(Debug, Clone)]
 pub enum Token {
