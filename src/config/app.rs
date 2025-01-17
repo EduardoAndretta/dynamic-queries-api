@@ -38,7 +38,7 @@ pub async fn run(db: DatabaseType) -> std::io::Result<()> {
     .run()
     .await;
 
-    println!("Running Web Server on Port '127.0.0.1:8900'");
+    println!("Running Web Server on Port 'http://127.0.0.1:8900'");
 
     server
 }

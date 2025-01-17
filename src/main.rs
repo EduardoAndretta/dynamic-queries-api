@@ -9,7 +9,6 @@ mod database;
 mod dto {
     pub mod query_params;
     pub mod metadata;
-    pub mod metadata_mapping;
 }
 
 mod features;
@@ -17,7 +16,7 @@ mod features;
 use config::app;
 use sqlx::{MssqlPool, SqlitePool};
 
-use crate::database::{DatabaseType, MssqlDatabase, SqliteDatabase};
+use crate::database::{DatabaseType, mssql::database::Database as MssqlDatabase, sqlite::database::Database as SqliteDatabase};
 
 // Function to configure and return the appropriate database pool
 async fn configure_db(database_type: &str) -> Result<DatabaseType, String> {
@@ -40,12 +39,9 @@ async fn configure_db(database_type: &str) -> Result<DatabaseType, String> {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // Example: Use dotenv to configure the database type and connection string
     let database_type = std::env::var("DATABASE_TYPE").unwrap_or_else(|_| "sqlite".to_string());  // Default to sqlite if not set
 
-    // Configure the database pool
     let db = configure_db(&database_type).await.unwrap();
 
-    // Call the `run` function with the database pool and database type
     app::run(db).await
 }

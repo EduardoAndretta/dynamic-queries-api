@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc};
 use dynamic_queries_api::EventfulPeekable;
 
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerRelationshipMetadata};
-use crate::services::query::database::sqlite::common::tokens::expand::token::Token;
+use crate::database::mssql::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerRelationshipMetadata};
+use crate::services::query::database::mssql::common::tokens::expand::token::Token;
 
 pub struct Tokenization;
 

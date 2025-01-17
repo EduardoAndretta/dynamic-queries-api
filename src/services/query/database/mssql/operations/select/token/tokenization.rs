@@ -1,8 +1,8 @@
-use std::{cell::RefCell, collections::{HashMap, HashSet}, rc::Rc};
+use std::{cell::RefCell, collections::HashSet, rc::Rc};
 use dynamic_queries_api::EventfulPeekable;
 
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerRelationshipMetadata};
-use crate::services::query::database::sqlite::common::tokens::expand::token::Token;
+use crate::database::mssql::common::context::contextualizer::{ContextualizerMetadata, ContextualizerEntityDescription, ContextualizerColumnMetadata};
+use crate::services::query::database::mssql::common::tokens::select::token::Token;
 
 pub struct Tokenization;
 
@@ -34,10 +34,8 @@ impl Tokenization {
         Ok(tokens)
     }
 
-    fn resolve_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<HashMap<i32, (ContextualizerEntityDescription, ContextualizerRelationshipMetadata)>, String> {
+    fn resolve_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         let parts: Vec<&str> = token.split('/').collect();
-
-        let mut metadata_dependencies: HashMap<i32, (ContextualizerEntityDescription, ContextualizerRelationshipMetadata)> = HashMap::new();
 
         if parts.len() < 2 {
             return Err(format!("Invalid nested token format: {}", token));
@@ -45,39 +43,53 @@ impl Tokenization {
 
         let mut current_metadata = metadata.clone();
 
-        for (index, part) in parts.iter().enumerate() {
-           
-            let relationship_metadata = current_metadata
-            .relationships
-            .get(*part)
-            .ok_or_else(|| format!("Invalid related entity: {}", part))?;
+        for (i, part) in parts.iter().enumerate() {
+            if i == parts.len() - 1 {
+                
+                // [Last part should be a field in the related entity]
+                let metadata = current_metadata.clone();
 
-            match i32::try_from(index) {
-                Ok(dependency_index) => metadata_dependencies.insert(dependency_index, (current_metadata.clone(), relationship_metadata.clone())),
-                Err(_) => return Err(format!("Value {} is too large to fit in an i32", index)),
-            };
+                let column_metadata = metadata
+                    .columns
+                    .get(*part)
+                    .cloned()
+                    .ok_or_else(|| format!("Invalid token in related entity: {}", part))?;
 
-            current_metadata = relationship_metadata.related_entity_metadata.clone();
+                return Ok((metadata, column_metadata));
+
+            } else {
+                // [Intermediate parts should be relationships]
+                let relationship = current_metadata
+                    .relationships
+                    .get(*part)
+                    .ok_or_else(|| format!("Invalid related entity: {}", part))?;
+
+                // [Expanded]
+                if !relationship.expanded {
+                    return Err(format!("Non expanded relation: {}", part));
+                }
+
+                current_metadata = relationship.related_entity_metadata.clone();
+            }
         }
 
-        Ok(metadata_dependencies)
+        Err(format!("Unexpected error resolving metadata for token: {}", token))
     }
 
-    fn resolve_non_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<HashMap<i32, (ContextualizerEntityDescription, ContextualizerRelationshipMetadata)>, String> {
-        let mut metadata_dependencies: HashMap<i32, (ContextualizerEntityDescription, ContextualizerRelationshipMetadata)> = HashMap::new();
+    fn resolve_non_nested_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         
-        let relationship_metadata = metadata
-            .relationships
+        let metadata = metadata.clone();
+
+        let column_metadata = metadata
+            .columns
             .get(token)
             .cloned()
             .ok_or_else(|| format!("Invalid token: {}", token))?;
 
-        metadata_dependencies.insert(0, (metadata.clone(), relationship_metadata.clone()));
-
-        Ok(metadata_dependencies)
+            return Ok((metadata, column_metadata));
     }
 
-    fn get_metadata_dependencies(metadata: &ContextualizerEntityDescription, token: &str) -> Result<HashMap<i32, (ContextualizerEntityDescription, ContextualizerRelationshipMetadata)>, String> {
+    fn get_metadata(metadata: &ContextualizerEntityDescription, token: &str) -> Result<(ContextualizerEntityDescription, ContextualizerColumnMetadata), String> {
         if token.contains('/') {
             Self::resolve_nested_metadata(metadata, token)
         } else {
@@ -85,7 +97,8 @@ impl Tokenization {
         }
     }
 
-    pub fn tokenize(text: &str, contextualizer: &mut ContextualizerMetadata) -> Result<Vec<Token>, String> {   
+    pub fn tokenize(text: &str, contextualizer: &ContextualizerMetadata) -> Result<Vec<Token>, String> {
+    
         let mut tokens: Vec<Token> = Vec::new();
 
         let mut previous_properties: HashSet<String> = HashSet::new();
@@ -117,7 +130,7 @@ impl Tokenization {
         let mut last_token = LastToken::None;
 
         let error_with_context = |message: String| -> String {
-            format!("Invalid $expand: {} [Context: {}]", message, context.borrow())
+            format!("Invalid $select: {} [Context: {}]", message, context.borrow())
         };
     
         while let Some(token) = tokens_iter.next() {
@@ -128,7 +141,7 @@ impl Tokenization {
                             last_token = LastToken::Comma;
                         },
                         _ => {
-                            return Err(error_with_context( String::from("Comma must follow a property")));
+                            return Err(error_with_context(String::from("Comma must follow a property")));
                         }
                     }
                 },
@@ -142,10 +155,12 @@ impl Tokenization {
                             previous_properties.insert(token.to_string());
 
                             // [Current Metadata]
-                            let metadata_dependencies = Self::get_metadata_dependencies(&metadata, token)
+                            let (metadata, column_metadata ) = Self::get_metadata(&metadata, token)
                             .map_err(|err| error_with_context(err))?;
 
-                            tokens.push(Token::new_property(metadata_dependencies));
+                            let relation_path = token.replace("/", ".");
+
+                            tokens.push(Token::new_property(metadata, column_metadata, relation_path));
                             
                             last_token = LastToken::Property;
                         },
