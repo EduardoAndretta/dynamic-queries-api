@@ -1,9 +1,9 @@
 use crate::services::query::common::alias_manager::QueryAliasManager;
 
-use crate::database::sqlite::common::context::contextualizer::ContextualizerMetadata;
+use crate::database::sqlite::common::context::contextualizer::{ContextualizerMetadata, ContextualizerColumnMetadata};
 use crate::services::query::database::sqlite::common::tokens::orderby::token::Token;
 
-use super::token::tokenization::Tokenization;
+use super::{compute::compute::Compute, token::tokenization::Tokenization};
 
 pub struct Orderby;
 
@@ -14,13 +14,23 @@ impl Orderby {
         contextualizer: &ContextualizerMetadata,
     ) -> Result<String, String> {
 
+        let error = |message: String| -> String {
+            format!("Invalid $orderby: {}", message)
+        };
+
         let mut sql: String = String::from("");
         let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = Tokenization::tokenize(text, contextualizer)?;
+            tokens = match Tokenization::tokenize(text, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
 
-            sql = Self::process_with_tokens(&tokens, alias_manager)?;
+            sql = match Self::process_with_tokens(&tokens, alias_manager) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
         }
 
         // [There no changes in context for while...]
@@ -42,12 +52,20 @@ impl Orderby {
         for token in tokens {
             match token {
                 Token::Property { metadata, column_metadata } => {
-                    let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
+                    match column_metadata {
+                        ContextualizerColumnMetadata::Original { column_name, .. } => {
+
+                            let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
                     
-                    properties.push(format!(
-                        "[{}].[{}]",
-                        table_alias, column_metadata.column_name
-                    ));
+                            properties.push(format!(
+                                "[{}].[{}]",
+                                table_alias, column_name
+                            ));
+                        },
+                        ContextualizerColumnMetadata::Dynamic { .. } => { 
+                            Compute::process_computed_column(&column_metadata, &mut properties, alias_manager)?
+                        } 
+                    }
                 },
             }
         }

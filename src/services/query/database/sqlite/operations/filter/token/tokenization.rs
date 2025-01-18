@@ -56,34 +56,34 @@ pub struct Tokenization;
 
 impl Tokenization {
     fn format_value(value: &str, column_metadata: &ContextualizerColumnMetadata) -> Result<String, String> {
-        let is_nullable = column_metadata.column_type == TypeId::of::<Option<i32>>()
-            || column_metadata.column_type == TypeId::of::<Option<i64>>()
-            || column_metadata.column_type == TypeId::of::<Option<f32>>()
-            || column_metadata.column_type == TypeId::of::<Option<f64>>()
-            || column_metadata.column_type == TypeId::of::<Option<bool>>()
-            || column_metadata.column_type == TypeId::of::<Option<String>>()
-            || column_metadata.column_type == TypeId::of::<Option<NaiveDate>>()
-            || column_metadata.column_type == TypeId::of::<Option<NaiveDateTime>>();
+        let is_nullable = column_metadata.column_type() == TypeId::of::<Option<i32>>()
+            || column_metadata.column_type() == TypeId::of::<Option<i64>>()
+            || column_metadata.column_type() == TypeId::of::<Option<f32>>()
+            || column_metadata.column_type() == TypeId::of::<Option<f64>>()
+            || column_metadata.column_type() == TypeId::of::<Option<bool>>()
+            || column_metadata.column_type() == TypeId::of::<Option<String>>()
+            || column_metadata.column_type() == TypeId::of::<Option<NaiveDate>>()
+            || column_metadata.column_type() == TypeId::of::<Option<NaiveDateTime>>();
     
         match value {
             "None" if is_nullable => Ok(String::from("NULL")),
             "None" => Err(format!(
                 "None value not allowed for non-nullable column: {}",
-                column_metadata.column_name
+                column_metadata.column_name()
             )),
-            _ => match column_metadata.column_type {
+            _ => match column_metadata.column_type() {
 
-                _ if column_metadata.column_type == TypeId::of::<Option<i32>>() ||
-                     column_metadata.column_type == TypeId::of::<Option<i64>>() ||
-                     column_metadata.column_type == TypeId::of::<Option<f32>>() ||
-                     column_metadata.column_type == TypeId::of::<Option<f64>>() => {
+                _ if column_metadata.column_type() == TypeId::of::<Option<i32>>() ||
+                     column_metadata.column_type() == TypeId::of::<Option<i64>>() ||
+                     column_metadata.column_type() == TypeId::of::<Option<f32>>() ||
+                     column_metadata.column_type() == TypeId::of::<Option<f64>>() => {
                         value.parse::<f64>().map_or_else(
                         |_| Err(format!("Invalid numeric value: {}", value)),
                         |_| Ok(value.to_string())
                     )
                 }
     
-                _ if column_metadata.column_type == TypeId::of::<Option<bool>>() => {
+                _ if column_metadata.column_type() == TypeId::of::<Option<bool>>() => {
                     match value.to_lowercase().as_str() {
                         "true" => Ok(String::from("TRUE")),
                         "false" => Ok(String::from("FALSE")),
@@ -91,9 +91,9 @@ impl Tokenization {
                     }
                 }
     
-                _ if column_metadata.column_type == TypeId::of::<Option<String>>() ||
-                     column_metadata.column_type == TypeId::of::<Option<NaiveDate>>() ||
-                     column_metadata.column_type == TypeId::of::<Option<NaiveDateTime>>() => {
+                _ if column_metadata.column_type() == TypeId::of::<Option<String>>() ||
+                     column_metadata.column_type() == TypeId::of::<Option<NaiveDate>>() ||
+                     column_metadata.column_type() == TypeId::of::<Option<NaiveDateTime>>() => {
                     if value.starts_with("'") && value.ends_with("'") {
                         Ok(value.to_string())
                     } else {
@@ -101,10 +101,10 @@ impl Tokenization {
                     }
                 }
 
-                _ if column_metadata.column_type == TypeId::of::<i32>() ||
-                     column_metadata.column_type == TypeId::of::<i64>() ||
-                     column_metadata.column_type == TypeId::of::<f32>() ||
-                     column_metadata.column_type == TypeId::of::<f64>() => {
+                _ if column_metadata.column_type() == TypeId::of::<i32>() ||
+                     column_metadata.column_type() == TypeId::of::<i64>() ||
+                     column_metadata.column_type() == TypeId::of::<f32>() ||
+                     column_metadata.column_type() == TypeId::of::<f64>() => {
 
                         value.parse::<f64>().map_or_else(
                         |_| Err(format!("Invalid numeric value: {}", value)),
@@ -112,7 +112,7 @@ impl Tokenization {
                     )
                 }
     
-                _ if column_metadata.column_type == TypeId::of::<bool>() => {
+                _ if column_metadata.column_type() == TypeId::of::<bool>() => {
                     match value.to_lowercase().as_str() {
                         "true" => Ok(String::from("TRUE")),
                         "false" => Ok(String::from("FALSE")),
@@ -120,9 +120,9 @@ impl Tokenization {
                     }
                 }
     
-                _ if column_metadata.column_type == TypeId::of::<String>() ||
-                     column_metadata.column_type == TypeId::of::<NaiveDate>() ||
-                     column_metadata.column_type == TypeId::of::<NaiveDateTime>() => {
+                _ if column_metadata.column_type() == TypeId::of::<String>() ||
+                     column_metadata.column_type() == TypeId::of::<NaiveDate>() ||
+                     column_metadata.column_type() == TypeId::of::<NaiveDateTime>() => {
                     if value.starts_with("'") && value.ends_with("'") {
                         Ok(value.to_string())
                     } else {
@@ -130,7 +130,7 @@ impl Tokenization {
                     }
                 }
     
-                _ => Err(format!("Unsupported column type for {}", column_metadata.column_name)),
+                _ => Err(format!("Unsupported column type for {}", column_metadata.column_name())),
             },
         }
     }
@@ -263,7 +263,7 @@ impl Tokenization {
 
     fn get_operation(column_metadata: &ContextualizerColumnMetadata, tokens_iter: &mut EventfulPeekable<std::slice::Iter<'_, String>>) -> Result<Operation, String> {
 
-        let operator: &str = tokens_iter.next().ok_or_else(|| format!("Invalid format near token: {}", column_metadata.column_name))?; 
+        let operator: &str = tokens_iter.next().ok_or_else(|| format!("Invalid format near token: {}", column_metadata.column_name()))?; 
 
         Self::validate_operator(operator, column_metadata)?;
 
@@ -283,7 +283,7 @@ impl Tokenization {
             }
             
             if parentheses_depth != 0 {
-                return Err(format!("Unbalanced parentheses in 'in clause': {} : {}", column_metadata.column_name, operator));
+                return Err(format!("Unbalanced parentheses in 'in clause': {} : {}", column_metadata.column_name(), operator));
             }
 
             // [Formatting  and Validation of values]
@@ -296,14 +296,14 @@ impl Tokenization {
             }
 
             if values.len() == 0 {
-                return Err(format!("'in clause' must have values: {} : {}", column_metadata.column_name, operator));
+                return Err(format!("'in clause' must have values: {} : {}", column_metadata.column_name(), operator));
             }
 
             return Ok(Operation::in_values(values))
         }
 
         // [Formatting and Validation of values]
-        let non_formatted_value = tokens_iter.next().ok_or_else(|| format!("Invalid format near token: {} : {}", column_metadata.column_name, operator))?;
+        let non_formatted_value = tokens_iter.next().ok_or_else(|| format!("Invalid format near token: {} : {}", column_metadata.column_name(), operator))?;
 
         let value: String = Self::format_value(non_formatted_value, column_metadata)?;
 
@@ -315,7 +315,7 @@ impl Tokenization {
             "lt" => Operation::less_than(value),
             "le" => Operation::less_than_or_equal(value),
             "like" => Operation::like(value),
-            _ => return Err(format!("Unsupported operator: {} : {}", column_metadata.column_name, operator)),
+            _ => return Err(format!("Unsupported operator: {} : {}", column_metadata.column_name(), operator)),
         };
         
         Ok(operation)
@@ -326,7 +326,7 @@ impl Tokenization {
             return Err(format!("Operator '{}' is not a valid operator", operator));
         }
 
-        if let Some(valid_operators) = VALID_OPERATORS.get(&column_metadata.column_type) {
+        if let Some(valid_operators) = VALID_OPERATORS.get(&column_metadata.column_type()) {
             if valid_operators.contains(&operator) {
                 return Ok(());
             } else {
@@ -370,7 +370,7 @@ impl Tokenization {
         let mut last_token = LastToken::None;
 
         let error_with_context = |message: String| -> String {
-            format!("Invalid $filter: {} [Context: {}]", message, context.borrow())
+            format!("{} [Context: {}]", message, context.borrow())
         };
     
         while let Some(token) = tokens_iter.next() {

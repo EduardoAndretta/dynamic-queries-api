@@ -16,16 +16,30 @@ impl Expand {
         contextualizer: &mut ContextualizerMetadata,
     ) -> Result<String, String> {
 
+        let error = |message: String| -> String {
+            format!("Invalid $expand: {}", message)
+        };
+
         let mut sql: String = String::from("");
         let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = Tokenization::tokenize(text, contextualizer)?;
 
-            sql = Self::process_with_tokens(&tokens, alias_manager)?;
+            tokens = match Tokenization::tokenize(text, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
+
+            sql = match Self::process_with_tokens(&tokens, alias_manager) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
         }
 
-        Context::resolve_context(&tokens, contextualizer)?;
+        match Context::resolve_context(&tokens, contextualizer) {
+            Err(err) => return Err(error(err)),
+            Ok(value) => value
+        };
 
         Ok(sql)
     }

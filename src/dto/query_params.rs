@@ -13,6 +13,8 @@ pub struct QueryParams {
     #[serde(rename = "$skip")]
     pub skip: Option<i32>,
     #[serde(rename = "$expand")]
-    pub expand: Option<String>
+    pub expand: Option<String>,
+    #[serde(rename = "$compute")]
+    pub compute: Option<String>,
 }
 
