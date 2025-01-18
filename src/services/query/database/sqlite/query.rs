@@ -3,6 +3,7 @@ use crate::dto::query_params::QueryParams;
 
 use crate::database::sqlite::common::context::contextualizer::ContextualizerMetadata;
 
+use crate::services::query::database::sqlite::operations::compute::compute::Compute;
 use crate::services::query::database::sqlite::operations::select::select::Select;
 use crate::services::query::database::sqlite::operations::filter::filter::Filter;
 use crate::services::query::database::sqlite::operations::expand::expand::Expand;
@@ -22,6 +23,9 @@ impl Query {
 
         // [$expand (With context changes)]
         let expand_text = Expand::process(options.expand.as_deref(), query_alias_manager, contextualizer)?;
+
+        // [$compute (With context changes)]
+        Compute::process(options.compute.as_deref(), contextualizer)?;
 
         // [$select (Without context changes)]
         let select_text = Select::process(options.select.as_deref(), query_alias_manager, contextualizer)?;

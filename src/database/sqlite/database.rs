@@ -163,11 +163,11 @@ impl Database {
                     // [Parsed Metadata | The name of metadata will not the same for database]
                     let parsed_metadata = ColumnMetadata {
                         column_name: key.to_string(),
-                        column_type: metadata.column_type
+                        column_type: metadata.column_type()
                     };
 
                     if let Some(value) = Self::fetch_column_value(row, &parsed_metadata) {
-                        json_row.insert(metadata.column_name.to_string(), value);
+                        json_row.insert(metadata.column_name().to_string(), value);
                     }
                 }
                 PropertyType::RelationalProperty { properties, .. } => { 
@@ -202,11 +202,11 @@ impl Database {
                     // [Parsed Metadata | The name of metadata will not the same for database]
                     let parsed_metadata = ColumnMetadata {
                         column_name: key.to_string(),
-                        column_type: metadata.column_type
+                        column_type: metadata.column_type()
                     };
 
                     if let Some(value) = Self::fetch_column_value(row, &parsed_metadata) {
-                        json_row.insert(metadata.column_name.to_string(), value);
+                        json_row.insert(metadata.column_name().to_string(), value);
                     }
                 }
                 PropertyType::RelationalProperty { properties, .. } => {

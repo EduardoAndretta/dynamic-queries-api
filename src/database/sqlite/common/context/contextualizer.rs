@@ -10,10 +10,10 @@ pub struct ContextualizerMetadata {
 impl ContextualizerMetadata {
     pub fn new(metadata: EntityDescription) -> Self {
         let columns = metadata.columns.into_iter().map(|(k, v)| {
-            (k, ContextualizerColumnMetadata {
-                column_name: v.column_name,
-                column_type: v.column_type,
-            })
+            (k, ContextualizerColumnMetadata::new( 
+                v.column_name,
+                v.column_type,
+            ))
         }).collect::<HashMap<_, _>>();
 
         let relationships = metadata.relationships.into_iter().map(|(k, v)| {
@@ -40,10 +40,10 @@ impl ContextualizerMetadata {
 
 fn convert_to_contextualizer_entity(entity: &EntityDescription) -> ContextualizerEntityDescription {
     let columns = entity.columns.iter().map(|(k, v)| {
-        (k.clone(), ContextualizerColumnMetadata {
-            column_name: v.column_name.clone(),
-            column_type: v.column_type,
-        })
+        (k.clone(), ContextualizerColumnMetadata::new(
+            v.column_name.to_string(), 
+            v.column_type
+        ))
     }).collect::<HashMap<_, _>>();
 
     let relationships = entity.relationships.iter().map(|(k, v)| {
@@ -77,19 +77,113 @@ fn convert_to_contextualizer_relationship_type(relationship_type: &RelationshipT
 }
 
 #[derive(Debug, Clone)]
-pub struct ContextualizerColumnMetadata {
+pub enum ContextualizerColumnMetadata {
+    Original {
+        column_name: String,
+        column_type: TypeId,
+    },
+    Dynamic {
+        column_name: String,
+        column_type: TypeId,
+        specification: ComputeSpecificationMetadata
+    },
+}
+
+// [Compute Specification] //
+
+#[derive(Debug, Clone)]
+pub struct ComputeSpecificationMetadata {
+    pub operation_type: ComputeOperation
+}
+
+#[derive(Debug, Clone)]
+pub enum ComputeOperation {
+    Arithmetic {
+        operation: ComputeArithmeticOperation
+    },
+    Alias {
+        operation: ComputeAliasOperation
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ComputeOperand {
+    pub table_name: String,
     pub column_name: String,
-    pub column_type: TypeId,
+}
+
+#[derive(Debug, Clone)]
+pub enum ComputeArithmeticOperation {
+    Addition {
+        left_operand: ComputeOperand,
+        right_operand: ComputeOperand
+    },
+    Subtration {
+        left_operand: ComputeOperand,
+        right_operand: ComputeOperand
+    },
+    Multiplication {
+        left_operand: ComputeOperand,
+        right_operand: ComputeOperand
+    },
+    Division {
+        left_operand: ComputeOperand,
+        right_operand: ComputeOperand
+    },
+    Module {
+        left_operand: ComputeOperand,
+        right_operand: ComputeOperand
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ComputeAliasOperation {
+    pub table_name: String,
+    pub column_name: String
+}
+
+// [Compute Specification] //
+
+impl ContextualizerColumnMetadata {
+    pub fn new(column_name: String, column_type: TypeId) -> Self {
+        ContextualizerColumnMetadata::Original {
+            column_name,
+            column_type,
+        }
+    }
+
+    pub fn new_dynamically(column_name: String, column_type: TypeId, specification: ComputeSpecificationMetadata) -> Self {
+        ContextualizerColumnMetadata::Dynamic {
+            column_name,
+            column_type,
+            specification
+        }
+    }
+
+    pub fn column_name(&self) -> &String {
+        match self {
+            ContextualizerColumnMetadata::Original { column_name, .. } => column_name,
+            ContextualizerColumnMetadata::Dynamic { column_name, .. } => column_name,
+        }
+    }
+
+    pub fn column_type(&self) -> TypeId {
+        match self {
+            ContextualizerColumnMetadata::Original { column_type, .. } => *column_type,
+            ContextualizerColumnMetadata::Dynamic { column_type, .. } => *column_type,
+        }
+    }
 }
 
 impl Default for ContextualizerColumnMetadata {
     fn default() -> Self {
-        ContextualizerColumnMetadata {
+        ContextualizerColumnMetadata::Original {
             column_name: "".to_string(),
             column_type: TypeId::of::<String>(),
         }
     }
-}
+}   
+
 
 #[derive(Debug, Clone)]
 pub enum ContextualizerRelationshipType {

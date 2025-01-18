@@ -1,9 +1,36 @@
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
+
 use crate::services::query::common::alias_manager::QueryAliasManager;
 
-use crate::database::sqlite::common::context::contextualizer::ContextualizerMetadata;
+use crate::database::sqlite::common::context::contextualizer::{ComputeArithmeticOperation, ComputeOperation, ContextualizerColumnMetadata, ContextualizerMetadata};
 use crate::services::query::database::sqlite::common::tokens::select::token::Token;
 
+use super::compute::compute::Compute;
 use super::token::tokenization::Tokenization;
+
+#[derive(Hash, Eq, PartialEq, Debug)]
+enum ArithmeticOperationType {
+    Addition,
+    Subtration,
+    Multiplication,
+    Division,
+    Module
+}
+
+lazy_static! {
+    static ref ARITHMETIC_OPERATORS: HashMap<ArithmeticOperationType, &'static str> = {
+        let mut map = HashMap::new();
+        map.insert(ArithmeticOperationType::Addition, "+");
+        map.insert(ArithmeticOperationType::Subtration, "-");
+        map.insert(ArithmeticOperationType::Multiplication, "*");
+        map.insert(ArithmeticOperationType::Division, "/");
+        map.insert(ArithmeticOperationType::Module, "%");
+        map
+    };
+}
+
 
 pub struct Select;
 
@@ -14,16 +41,30 @@ impl Select {
         contextualizer: &ContextualizerMetadata,
     ) -> Result<String, String> {
 
+        let error = |message: String| -> String {
+            format!("Invalid $select: {}", message)
+        };
+
         let mut sql: String = String::from("");
         let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = Tokenization::tokenize(text, contextualizer)?;
 
-            sql = Self::process_with_tokens(&tokens, alias_manager, contextualizer)?;
+            tokens = match Tokenization::tokenize(text, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
+
+            sql = match Self::process_with_tokens(&tokens, alias_manager, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
         }
         else {
-            sql = Self::process_without_tokens(alias_manager, contextualizer)?  
+            sql = match Self::process_without_tokens(alias_manager, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };  
         }
 
         // [There no changes in context for while...]
@@ -47,11 +88,11 @@ impl Select {
         let table_alias: String = alias_manager.get_or_create_table_alias(&metadata.table_name);
 
         for column_metadata in metadata.columns.values() {
-            let field_alias: String = alias_manager.get_or_create_field_alias(&column_metadata.column_name);
+            let field_alias: String = alias_manager.get_or_create_field_alias(&column_metadata.column_name());
             
             properties.push(format!(
                 "[{}].[{}] AS [{}]",
-                table_alias, column_metadata.column_name, field_alias
+                table_alias, column_metadata.column_name(), field_alias
             ));
         }
 
@@ -83,14 +124,22 @@ impl Select {
         for token in tokens {
             match token {
                 Token::Property { metadata, column_metadata, relation_path} => {
-                    let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
-                    let field_alias = alias_manager.get_or_create_field_alias(&relation_path);
-                    
-                    properties.push(format!(
-                        "[{}].[{}] AS [{}]", 
-                        table_alias, column_metadata.column_name, field_alias
-                    ));
-                },
+                    match column_metadata {
+                        ContextualizerColumnMetadata::Original { column_name, .. } => {
+
+                            let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
+                            let field_alias = alias_manager.get_or_create_field_alias(&relation_path);
+                            
+                            properties.push(format!(
+                                "[{}].[{}] AS [{}]", 
+                                table_alias, column_name, field_alias
+                            ));
+                        },
+                        ContextualizerColumnMetadata::Dynamic { .. } => { 
+                            Compute::process_computed_column(&column_metadata, &mut properties, alias_manager)?
+                        } 
+                    }
+                }
             }
         }
 
