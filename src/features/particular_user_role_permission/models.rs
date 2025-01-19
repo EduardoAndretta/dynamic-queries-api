@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{particular::models::ParticularModel, permission::models::PermissionModel, role::models::RoleModel, user::models::UserModel}};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{particular::models::Model as ParticularModel, permission::models::Model as PermissionModel, role::models::Model as RoleModel, user::models::Model as UserModel}};
 
 #[derive(Serialize, Deserialize)]
-pub struct ParticularUserRolePermissionModel {
+pub struct Model {
     pub id_particular_user_role_permission: i32,
     pub id_particular: Option<i32>,
     pub id_user: Option<i32>,
@@ -12,9 +12,9 @@ pub struct ParticularUserRolePermissionModel {
     pub id_permission: Option<i32>
 }
 
-impl Default for ParticularUserRolePermissionModel {
+impl Default for Model {
     fn default() -> Self {
-        ParticularUserRolePermissionModel {
+        Model {
             id_particular_user_role_permission: 0,
             id_particular: None,
             id_user: None,
@@ -24,7 +24,7 @@ impl Default for ParticularUserRolePermissionModel {
     }
 }
 
-impl EntityMetadata for ParticularUserRolePermissionModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -74,11 +74,9 @@ impl EntityMetadata for ParticularUserRolePermissionModel {
                     "Particular".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: ParticularModel::metadata().clone(),
-                        related_entity: "Particular".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_particular".to_string()],
                         related_keys: vec!["id_particular".to_string()],
-                        navigation_property: "Particular".to_string(),
                     },
                 );
 
@@ -86,11 +84,9 @@ impl EntityMetadata for ParticularUserRolePermissionModel {
                     "User".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: UserModel::metadata().clone(),
-                        related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
                         related_keys: vec!["id_user".to_string()],
-                        navigation_property: "User".to_string(),
                     },
                 );
 
@@ -98,11 +94,9 @@ impl EntityMetadata for ParticularUserRolePermissionModel {
                     "Role".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: RoleModel::metadata().clone(),
-                        related_entity: "Role".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_role".to_string()],
                         related_keys: vec!["id_role".to_string()],
-                        navigation_property: "Role".to_string(),
                     },
                 );
 
@@ -110,11 +104,9 @@ impl EntityMetadata for ParticularUserRolePermissionModel {
                     "Permission".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: PermissionModel::metadata().clone(),
-                        related_entity: "Permission".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_permission".to_string()],
                         related_keys: vec!["id_permission".to_string()],
-                        navigation_property: "Permission".to_string(),
                     },
                 );
 

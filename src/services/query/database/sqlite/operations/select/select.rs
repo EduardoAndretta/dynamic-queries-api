@@ -1,36 +1,9 @@
-use std::collections::HashMap;
-
-use lazy_static::lazy_static;
-
 use crate::services::query::common::alias_manager::QueryAliasManager;
 
-use crate::database::sqlite::common::context::contextualizer::{ComputeArithmeticOperation, ComputeOperation, ContextualizerColumnMetadata, ContextualizerMetadata};
+use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ContextualizerMetadata};
 use crate::services::query::database::sqlite::common::tokens::select::token::Token;
 
-use super::compute::compute::Compute;
-use super::token::tokenization::Tokenization;
-
-#[derive(Hash, Eq, PartialEq, Debug)]
-enum ArithmeticOperationType {
-    Addition,
-    Subtration,
-    Multiplication,
-    Division,
-    Module
-}
-
-lazy_static! {
-    static ref ARITHMETIC_OPERATORS: HashMap<ArithmeticOperationType, &'static str> = {
-        let mut map = HashMap::new();
-        map.insert(ArithmeticOperationType::Addition, "+");
-        map.insert(ArithmeticOperationType::Subtration, "-");
-        map.insert(ArithmeticOperationType::Multiplication, "*");
-        map.insert(ArithmeticOperationType::Division, "/");
-        map.insert(ArithmeticOperationType::Module, "%");
-        map
-    };
-}
-
+use super::{token::tokenization::Tokenization, compute::compute::Compute};
 
 pub struct Select;
 
@@ -45,12 +18,11 @@ impl Select {
             format!("Invalid $select: {}", message)
         };
 
-        let mut sql: String = String::from("");
-        let mut tokens: Vec<Token> = Vec::new();
+        let sql: String;
 
         if let Some(text) = text {
 
-            tokens = match Tokenization::tokenize(text, contextualizer) {
+            let tokens = match Tokenization::tokenize(text, contextualizer) {
                 Err(err) => return Err(error(err)),
                 Ok(value) => value
             };

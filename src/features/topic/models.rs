@@ -1,19 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{context::models::ContextModel, user::models::UserModel}};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{context::models::Model as ContextModel, user::models::Model as UserModel}};
 
 #[derive(Serialize, Deserialize)]
-pub struct TopicModel {
+pub struct Model {
     pub id_topic: i32,
     pub name_topic: String,
     pub id_context: Option<i32>,
     pub id_user: Option<i32>,
 }
 
-impl Default for TopicModel {
+impl Default for Model {
     fn default() -> Self {
-        TopicModel {
+        Model {
             id_topic: 0,
             name_topic: "".to_string(),
             id_context: None,
@@ -22,7 +22,7 @@ impl Default for TopicModel {
     }
 }
 
-impl EntityMetadata for TopicModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -64,11 +64,9 @@ impl EntityMetadata for TopicModel {
                     "Context".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: ContextModel::metadata().clone(),
-                        related_entity: "Context".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_context".to_string()],
                         related_keys: vec!["id_context".to_string()],
-                        navigation_property: "Context".to_string(),
                     },
                 );
 
@@ -76,11 +74,9 @@ impl EntityMetadata for TopicModel {
                     "User".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: UserModel::metadata().clone(),
-                        related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
                         related_keys: vec!["id_user".to_string()],
-                        navigation_property: "User".to_string(),
                     },
                 );
 

@@ -52,6 +52,14 @@ pub mod query {
                     }
                 }
 
+                pub mod count {
+                    pub mod count;
+                  
+                    pub mod context {
+                        pub mod context;
+                    }
+                }
+
                 pub mod select {
                     pub mod select;
 
@@ -118,6 +126,9 @@ pub mod query {
                     pub mod orderby {
                         pub mod token;
                     }
+                    pub mod compute {
+                        pub mod token;
+                    }
                 }
             }
 
@@ -134,8 +145,33 @@ pub mod query {
                     }
                 }
 
+                pub mod compute {
+                    pub mod compute;
+
+                    pub mod token {
+                        pub mod tokenization;
+                    }
+
+                    pub mod context {
+                        pub mod context;
+                    }
+                }
+
+                pub mod count {
+                    pub mod count;
+                  
+                    pub mod context {
+                        pub mod context;
+                    }
+                }
+
                 pub mod select {
                     pub mod select;
+
+                    // [Specific module the handle $compute operations]
+                    pub mod compute {
+                        pub mod compute;
+                    }
 
                     pub mod token {
                         pub mod tokenization;
@@ -144,6 +180,11 @@ pub mod query {
     
                 pub mod filter {
                     pub mod filter;
+
+                    // [Specific module the handle $compute operations]
+                    pub mod compute {
+                        pub mod compute;
+                    }
     
                     pub mod token {
                         pub mod tokenization;
@@ -152,6 +193,11 @@ pub mod query {
    
                 pub mod orderby {
                     pub mod orderby;
+
+                    // [Specific module the handle $compute operations]
+                    pub mod compute {
+                        pub mod compute;
+                    }
 
                     pub mod token {
                         pub mod tokenization;
@@ -165,7 +211,7 @@ pub mod query {
                 pub mod skip {
                     pub mod skip;
                 }
-            } 
+            }  
         }
     } 
 } 

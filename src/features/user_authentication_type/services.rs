@@ -1,16 +1,24 @@
 use serde_json::Value;
-use crate::features::user_authentication_type::repositories::UserAuthenticationTypeRepository;
+use crate::features::user_authentication_type::repositories::Repository;
 use crate::dto::query_params::QueryParams;
 use crate::database::DatabaseType;
 
-pub struct UserAuthenticationTypeService;
+pub struct Service;
 
-impl UserAuthenticationTypeService {
+impl Service {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
     ) -> Result<Vec<Value>, String> {
         
-        UserAuthenticationTypeRepository::get(db, options).await
+        Repository::get(db, options).await
+    }
+                                        
+    pub async fn get_count(
+        db: &DatabaseType,
+        options: QueryParams,
+    ) -> Result<Value, String> {
+        
+        Repository::get_count(db, options).await
     }
 }

@@ -31,6 +31,7 @@ pub mod sqlite {
 
 pub trait Database {
     async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String>;
+    async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String>;
 }
 
 pub enum DatabaseType {
@@ -52,6 +53,13 @@ impl Database for DatabaseType {
         match self {
             DatabaseType::Mssql(db) => db.execute::<T>(options).await,
             DatabaseType::Sqlite(db) => db.execute::<T>(options).await
+        }
+    }
+
+    async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String>  {
+        match self {
+            DatabaseType::Mssql(db) => db.execute_count::<T>(options).await,
+            DatabaseType::Sqlite(db) => db.execute_count::<T>(options).await
         }
     }
 }

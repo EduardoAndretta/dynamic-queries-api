@@ -1,9 +1,9 @@
 use crate::services::query::common::alias_manager::QueryAliasManager;
 
-use crate::database::mssql::common::context::contextualizer::ContextualizerMetadata;
+use crate::database::mssql::common::context::contextualizer::{ContextualizerMetadata, ContextualizerColumnMetadata};
 use crate::services::query::database::mssql::common::tokens::select::token::Token;
 
-use super::token::tokenization::Tokenization;
+use super::{compute::compute::Compute, token::tokenization::Tokenization};
 
 pub struct Select;
 
@@ -14,16 +14,29 @@ impl Select {
         contextualizer: &ContextualizerMetadata,
     ) -> Result<String, String> {
 
-        let mut sql: String = String::from("");
-        let mut tokens: Vec<Token> = Vec::new();
+        let error = |message: String| -> String {
+            format!("Invalid $select: {}", message)
+        };
+
+        let sql: String;
 
         if let Some(text) = text {
-            tokens = Tokenization::tokenize(text, contextualizer)?;
 
-            sql = Self::process_with_tokens(&tokens, alias_manager, contextualizer)?;
+            let tokens = match Tokenization::tokenize(text, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
+
+            sql = match Self::process_with_tokens(&tokens, alias_manager, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
         }
         else {
-            sql = Self::process_without_tokens(alias_manager, contextualizer)?  
+            sql = match Self::process_without_tokens(alias_manager, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };  
         }
 
         // [There no changes in context for while...]
@@ -47,11 +60,11 @@ impl Select {
         let table_alias: String = alias_manager.get_or_create_table_alias(&metadata.table_name);
 
         for column_metadata in metadata.columns.values() {
-            let field_alias: String = alias_manager.get_or_create_field_alias(&column_metadata.column_name);
+            let field_alias: String = alias_manager.get_or_create_field_alias(&column_metadata.column_name());
             
             properties.push(format!(
                 "[{}].[{}] AS [{}]",
-                table_alias, column_metadata.column_name, field_alias
+                table_alias, column_metadata.column_name(), field_alias
             ));
         }
 
@@ -83,14 +96,22 @@ impl Select {
         for token in tokens {
             match token {
                 Token::Property { metadata, column_metadata, relation_path} => {
-                    let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
-                    let field_alias = alias_manager.get_or_create_field_alias(&relation_path);
-                    
-                    properties.push(format!(
-                        "[{}].[{}] AS [{}]", 
-                        table_alias, column_metadata.column_name, field_alias
-                    ));
-                },
+                    match column_metadata {
+                        ContextualizerColumnMetadata::Original { column_name, .. } => {
+
+                            let table_alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
+                            let field_alias = alias_manager.get_or_create_field_alias(&relation_path);
+                            
+                            properties.push(format!(
+                                "[{}].[{}] AS [{}]", 
+                                table_alias, column_name, field_alias
+                            ));
+                        },
+                        ContextualizerColumnMetadata::Dynamic { .. } => { 
+                            Compute::process_computed_column(&column_metadata, &mut properties, alias_manager)?
+                        } 
+                    }
+                }
             }
         }
 

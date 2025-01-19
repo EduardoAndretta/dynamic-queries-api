@@ -1,19 +1,19 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::context::models::ContextModel};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::context::models::Model as ContextModel};
 
 #[derive(Serialize, Deserialize)]
-pub struct ForumModel {
+pub struct Model {
     pub id_forum: i32,
     pub name_forum : String,
     pub description_forum : String,
     pub id_context: Option<i32>
 }
 
-impl Default for ForumModel {
+impl Default for Model {
     fn default() -> Self {
-        ForumModel {
+        Model {
             id_forum: 0,
             name_forum : "".to_string(),
             description_forum : "".to_string(),
@@ -22,7 +22,7 @@ impl Default for ForumModel {
     }
 }
 
-impl EntityMetadata for ForumModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -64,11 +64,9 @@ impl EntityMetadata for ForumModel {
                     "Context".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: ContextModel::metadata().clone(),
-                        related_entity: "Context".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_context".to_string()],
                         related_keys: vec!["id_context".to_string()],
-                        navigation_property: "Context".to_string(),
                     },
                 );
 

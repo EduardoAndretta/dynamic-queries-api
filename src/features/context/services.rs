@@ -1,16 +1,24 @@
 use serde_json::Value;
-use crate::features::context::repositories::ContextRepository;
+use crate::features::context::repositories::Repository;
 use crate::dto::query_params::QueryParams;
 use crate::database::DatabaseType;
 
-pub struct ContextService;
+pub struct Service;
 
-impl ContextService {
+impl Service {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
     ) -> Result<Vec<Value>, String> {
         
-        ContextRepository::get(db, options).await
+        Repository::get(db, options).await
+    }
+    
+    pub async fn get_count(
+        db: &DatabaseType,
+        options: QueryParams,
+    ) -> Result<Value, String> {
+        
+        Repository::get_count(db, options).await
     }
 }

@@ -1,16 +1,24 @@
 use serde_json::Value;
-use crate::features::topic::repositories::TopicRepository;
+use crate::features::topic::repositories::Repository;
 use crate::dto::query_params::QueryParams;
 use crate::database::DatabaseType;
 
-pub struct TopicService;
+pub struct Service;
 
-impl TopicService {
+impl Service {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
     ) -> Result<Vec<Value>, String> {
         
-        TopicRepository::get(db, options).await
+        Repository::get(db, options).await
+    }
+                                
+    pub async fn get_count(
+        db: &DatabaseType,
+        options: QueryParams,
+    ) -> Result<Value, String> {
+        
+        Repository::get_count(db, options).await
     }
 }

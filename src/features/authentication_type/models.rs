@@ -4,22 +4,22 @@ use std::any::TypeId;
 use crate::dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata};
 
 #[derive(Serialize, Deserialize)]
-pub struct AuthenticationTypeModel {
+pub struct Model {
     pub id_authentication_type: i32,
     pub name_authentication_type: String
 
 }
 
-impl Default for AuthenticationTypeModel {
+impl Default for Model {
     fn default() -> Self {
-        AuthenticationTypeModel {
+        Model {
             id_authentication_type: 0,
             name_authentication_type: "".to_string()
         }
     }
 }
 
-impl EntityMetadata for AuthenticationTypeModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {

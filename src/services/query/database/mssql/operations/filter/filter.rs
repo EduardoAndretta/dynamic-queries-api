@@ -2,11 +2,10 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 
 use crate::services::query::common::alias_manager::QueryAliasManager;
+use crate::database::mssql::common::context::contextualizer::{ContextualizerMetadata, ContextualizerColumnMetadata};
+use crate::services::query::database::mssql::common::tokens::filter::token::{Increment, Operation, Parentheses, Token};
 
-use crate::database::mssql::common::context::contextualizer::ContextualizerMetadata;
-use crate::services::query::database::mssql::common::tokens::filter::token::{Token, Parentheses, Increment, Operation};
-
-use super::token::tokenization::Tokenization;
+use super::{compute::compute::Compute, token::tokenization::Tokenization};
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 enum OperationFilterType {
@@ -44,13 +43,22 @@ impl Filter {
         contextualizer: &ContextualizerMetadata,
     ) -> Result<String, String> {
 
+        let error = |message: String| -> String {
+            format!("Invalid $filter: {}", message)
+        };
+
         let mut sql: String = String::from("");
-        let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = Tokenization::tokenize(text, contextualizer)?;
+            let tokens = match Tokenization::tokenize(text, contextualizer) {
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
 
-            sql = Self::process_with_tokens(&tokens, alias_manager)?;
+            sql = match Self::process_with_tokens(&tokens, alias_manager){
+                Err(err) => return Err(error(err)),
+                Ok(value) => value
+            };
         }
 
         // [There no changes in context for while...]
@@ -70,13 +78,19 @@ impl Filter {
         let get_operator = |operator_type: &OperationFilterType| -> &'static str {
             OPERATORS
                 .get(operator_type)
-                .ok_or_else(|| format!("Invalid $filter: Operator not found for {:?}", operator_type))
+                .ok_or_else(|| format!("Operator not found for {:?}", operator_type))
                 .unwrap()
         };
 
+        let mut needs_space = false;
+
         for token in tokens {
 
-            sql.push_str(" ");
+            if needs_space {
+                sql.push(' ');
+
+                needs_space = false;
+            }
 
             match token {
                 Token::Parentheses { parentheses } => {
@@ -91,88 +105,102 @@ impl Filter {
                     }
                 },
                 Token::Increment { increment } => {
+
+                    needs_space = true;
+
                     match increment {
                         Increment::And => sql.push_str("OR"),
                         Increment::Or => sql.push_str("AND")
                     }
                 },
                 Token::Property { metadata, column_metadata, operation } => {
-                    let alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
+                    
+                    needs_space = true;
 
-                    match &operation {
-                        Operation::Equal { value } => {
+                    match column_metadata {
+                        ContextualizerColumnMetadata::Original { column_name, .. } => {
 
-                            let operator = get_operator(&OperationFilterType::Equal);
+                            let alias = alias_manager.get_or_create_table_alias(&metadata.table_name);
 
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
+                                match &operation {
+                                    Operation::Equal { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::Equal);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::NotEqual { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::NotEqual);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::GreaterThan { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::GreaterThan);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::GreaterThanOrEqual { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::LessThan { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::LessThan);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::LessThanOrEqual { value } => {
+                                        
+                                        let operator = get_operator(&OperationFilterType::LessThanOrEqual);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::Like { value } => {
+                                        
+                                        let operator = get_operator(&OperationFilterType::Like);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} {}",
+                                            alias, column_name, operator, value
+                                        ));
+                                    },
+                                    Operation::InValues { value } => {
+
+                                        let operator = get_operator(&OperationFilterType::InValues);
+
+                                        sql.push_str(&format!(
+                                            "[{}].[{}] {} ({})",
+                                            alias, column_name, operator, value.join(",")
+                                        ));
+                                    },
+                                }
                         },
-                        Operation::NotEqual { value } => {
-
-                            let operator = get_operator(&OperationFilterType::NotEqual);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::GreaterThan { value } => {
-
-                            let operator = get_operator(&OperationFilterType::GreaterThan);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::GreaterThanOrEqual { value } => {
-
-                            let operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::LessThan { value } => {
-
-                            let operator = get_operator(&OperationFilterType::LessThan);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::LessThanOrEqual { value } => {
-                            
-                            let operator = get_operator(&OperationFilterType::LessThanOrEqual);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::Like { value } => {
-                            
-                            let operator = get_operator(&OperationFilterType::Like);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} {}",
-                                alias, column_metadata.column_name, operator, value
-                            ));
-                        },
-                        Operation::InValues { value } => {
-
-                            let operator = get_operator(&OperationFilterType::InValues);
-
-                            sql.push_str(&format!(
-                                "[{}].[{}] {} ({})",
-                                alias, column_metadata.column_name, operator, value.join(",")
-                            ));
-                        },
-                    }
+                        ContextualizerColumnMetadata::Dynamic { .. } => { 
+                            Compute::process_computed_column(column_metadata, operation, &mut sql, alias_manager)?
+                        } 
+                    }  
                 },
             }
         }

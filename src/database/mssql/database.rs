@@ -43,6 +43,31 @@ impl crate::database::Database for Database {
     
         Ok(results)
     }
+
+    async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {   
+        
+        let mut contextualizer = ContextualizerMetadata::new(T::metadata().clone());
+
+        let mut alias_manger = QueryAliasManager::new();
+
+        let query = Query.build_query_count(options, &mut alias_manger, &mut contextualizer)?;
+        
+        let rows = sqlx::query(&query)
+            .fetch_all(&self.0)
+            .await
+            .map_err(|e| format!("Error executing query: {}", e))?;
+
+        if rows.is_empty() {
+            return Err("No rows returned from query".to_string());
+        }
+
+        let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
+    
+        let mut json_row = Map::new();
+        Self::parse_and_populate_fields(&rows[0], &properties_hierarchy, &mut json_row);
+
+        Ok(Value::Object(json_row))
+    }
     
 }
 
@@ -163,11 +188,11 @@ impl Database {
                     // [Parsed Metadata | The name of metadata will not the same for database]
                     let parsed_metadata = ColumnMetadata {
                         column_name: key.to_string(),
-                        column_type: metadata.column_type
+                        column_type: metadata.column_type()
                     };
 
                     if let Some(value) = Self::fetch_column_value(row, &parsed_metadata) {
-                        json_row.insert(metadata.column_name.to_string(), value);
+                        json_row.insert(metadata.column_name().to_string(), value);
                     }
                 }
                 PropertyType::RelationalProperty { properties, .. } => { 
@@ -202,11 +227,11 @@ impl Database {
                     // [Parsed Metadata | The name of metadata will not the same for database]
                     let parsed_metadata = ColumnMetadata {
                         column_name: key.to_string(),
-                        column_type: metadata.column_type
+                        column_type: metadata.column_type()
                     };
 
                     if let Some(value) = Self::fetch_column_value(row, &parsed_metadata) {
-                        json_row.insert(metadata.column_name.to_string(), value);
+                        json_row.insert(metadata.column_name().to_string(), value);
                     }
                 }
                 PropertyType::RelationalProperty { properties, .. } => {

@@ -1,18 +1,18 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::user::models::UserModel};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::user::models::Model as UserModel};
 
 #[derive(Serialize, Deserialize)]
-pub struct ParticularModel {
+pub struct Model {
     pub id_particular: i32,
     pub description_particular : String,
     pub id_user: Option<i32>
 }
 
-impl Default for ParticularModel {
+impl Default for Model {
     fn default() -> Self {
-        ParticularModel {
+        Model {
             id_particular: 0,
             description_particular: "".to_string(),
             id_user: None
@@ -20,7 +20,7 @@ impl Default for ParticularModel {
     }
 }
 
-impl EntityMetadata for ParticularModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -54,11 +54,9 @@ impl EntityMetadata for ParticularModel {
                     "User".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: UserModel::metadata().clone(),
-                        related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
                         related_keys: vec!["id_user".to_string()],
-                        navigation_property: "User".to_string(),
                     },
                 );
 

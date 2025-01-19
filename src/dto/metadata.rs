@@ -27,8 +27,6 @@ pub enum RelationshipType {
 #[derive(Debug, Clone)]
 pub struct RelationshipMetadata {
     pub related_entity_metadata: EntityDescription,
-    pub related_entity: String,
-    pub navigation_property: String,
     pub relationship_type: RelationshipType,
     pub foreign_keys: Vec<String>,
     pub related_keys: Vec<String>,

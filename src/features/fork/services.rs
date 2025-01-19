@@ -1,16 +1,24 @@
 use serde_json::Value;
-use crate::features::fork::repositories::ForkRepository;
+use crate::features::fork::repositories::Repository;
 use crate::dto::query_params::QueryParams;
 use crate::database::DatabaseType;
 
-pub struct ForkService;
+pub struct Service;
 
-impl ForkService {
+impl Service {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
     ) -> Result<Vec<Value>, String> {
         
-        ForkRepository::get(db, options).await
+        Repository::get(db, options).await
+    }
+        
+    pub async fn get_count(
+        db: &DatabaseType,
+        options: QueryParams,
+    ) -> Result<Value, String> {
+        
+        Repository::get_count(db, options).await
     }
 }

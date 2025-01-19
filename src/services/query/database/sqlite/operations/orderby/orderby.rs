@@ -19,10 +19,9 @@ impl Orderby {
         };
 
         let mut sql: String = String::from("");
-        let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = match Tokenization::tokenize(text, contextualizer) {
+            let tokens = match Tokenization::tokenize(text, contextualizer) {
                 Err(err) => return Err(error(err)),
                 Ok(value) => value
             };

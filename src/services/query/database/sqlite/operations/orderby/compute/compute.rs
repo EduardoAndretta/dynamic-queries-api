@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use lazy_static::lazy_static;
 
 use crate::services::query::common::alias_manager::QueryAliasManager;
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ComputeArithmeticOperation, ComputeOperation, ComputeSpecificationMetadata};
+use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ComputeArithmeticOperation, ComputeOperation};
 
 #[derive(Hash, Eq, PartialEq, Debug)]
 enum ArithmeticOperationType {

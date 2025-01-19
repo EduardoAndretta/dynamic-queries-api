@@ -5,15 +5,15 @@ use std::any::TypeId;
 use crate::dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata};
 
 #[derive(Serialize, Deserialize)]
-pub struct UserModel {
+pub struct Model {
     pub id_user: i32,
     pub name_user: String,
     pub date_user: NaiveDateTime
 }
 
-impl Default for UserModel {
+impl Default for Model {
     fn default() -> Self {
-        UserModel {
+        Model {
             id_user: 0,
             name_user: "".to_string(),
             date_user: Utc.with_ymd_and_hms(0,0,0,0,0,0).unwrap().naive_local(),
@@ -21,7 +21,7 @@ impl Default for UserModel {
     }
 }
 
-impl EntityMetadata for UserModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {

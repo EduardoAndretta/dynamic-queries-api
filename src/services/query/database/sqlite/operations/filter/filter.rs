@@ -49,10 +49,9 @@ impl Filter {
         };
 
         let mut sql: String = String::from("");
-        let mut tokens: Vec<Token> = Vec::new();
 
         if let Some(text) = text {
-            tokens = match Tokenization::tokenize(text, contextualizer) {
+            let tokens = match Tokenization::tokenize(text, contextualizer) {
                 Err(err) => return Err(error(err)),
                 Ok(value) => value
             };
@@ -84,9 +83,15 @@ impl Filter {
                 .unwrap()
         };
 
+        let mut needs_space = false;
+
         for token in tokens {
 
-            sql.push_str(" ");
+            if needs_space {
+                sql.push(' ');
+
+                needs_space = false;
+            }
 
             match token {
                 Token::Parentheses { parentheses } => {
@@ -101,6 +106,9 @@ impl Filter {
                     }
                 },
                 Token::Increment { increment } => {
+
+                    needs_space = true;
+
                     match increment {
                         Increment::And => sql.push_str("OR"),
                         Increment::Or => sql.push_str("AND")
@@ -108,6 +116,8 @@ impl Filter {
                 },
                 Token::Property { metadata, column_metadata, operation } => {
                     
+                    needs_space = true;
+
                     match column_metadata {
                         ContextualizerColumnMetadata::Original { column_name, .. } => {
 
@@ -120,7 +130,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::NotEqual { value } => {
@@ -129,7 +139,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::GreaterThan { value } => {
@@ -138,7 +148,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::GreaterThanOrEqual { value } => {
@@ -147,7 +157,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::LessThan { value } => {
@@ -156,7 +166,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::LessThanOrEqual { value } => {
@@ -165,7 +175,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::Like { value } => {
@@ -174,7 +184,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} {}",
-                                            alias, column_metadata.column_name(), operator, value
+                                            alias, column_name, operator, value
                                         ));
                                     },
                                     Operation::InValues { value } => {
@@ -183,7 +193,7 @@ impl Filter {
 
                                         sql.push_str(&format!(
                                             "[{}].[{}] {} ({})",
-                                            alias, column_metadata.column_name(), operator, value.join(",")
+                                            alias, column_name, operator, value.join(",")
                                         ));
                                     },
                                 }

@@ -4,16 +4,16 @@ use std::any::TypeId;
 use crate::dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata};
 
 #[derive(Serialize, Deserialize)]
-pub struct RoleModel {
+pub struct Model {
     pub id_role: i32,
     pub name_role: String,
     pub description_role: String
 
 }
 
-impl Default for RoleModel {
+impl Default for Model {
     fn default() -> Self {
-        RoleModel {
+        Model {
             id_role: 0,
             name_role: "".to_string(),
             description_role: "".to_string()
@@ -21,7 +21,7 @@ impl Default for RoleModel {
     }
 }
 
-impl EntityMetadata for RoleModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {

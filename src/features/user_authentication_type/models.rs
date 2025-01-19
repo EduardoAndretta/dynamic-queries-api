@@ -2,10 +2,10 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{authentication_type::models::AuthenticationTypeModel, user::models::UserModel}};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{authentication_type::models::Model as AuthenticationTypeModel, user::models::Model as UserModel}};
 
 #[derive(Serialize, Deserialize)]
-pub struct UserAuthenticationTypeModel {
+pub struct Model {
     pub id_user_authentication_type: i32,
     pub date_user_authentication_type: NaiveDateTime,
     pub active_user_authentication_type: bool,
@@ -13,9 +13,9 @@ pub struct UserAuthenticationTypeModel {
     pub id_user: Option<i32>,
 }
 
-impl Default for UserAuthenticationTypeModel {
+impl Default for Model {
     fn default() -> Self {
-        UserAuthenticationTypeModel {
+        Model {
             id_user_authentication_type: 0,
             date_user_authentication_type: Utc.with_ymd_and_hms(0,0,0,0,0,0).unwrap().naive_local(),
             active_user_authentication_type: false,
@@ -25,7 +25,7 @@ impl Default for UserAuthenticationTypeModel {
     }
 }
 
-impl EntityMetadata for UserAuthenticationTypeModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -75,11 +75,9 @@ impl EntityMetadata for UserAuthenticationTypeModel {
                     "AuthenticationType".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: AuthenticationTypeModel::metadata().clone(),
-                        related_entity: "AuthenticationType".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_authentication_type".to_string()],
                         related_keys: vec!["id_authentication_type".to_string()],
-                        navigation_property: "AuthenticationType".to_string(),
                     },
                 );
 
@@ -87,11 +85,9 @@ impl EntityMetadata for UserAuthenticationTypeModel {
                     "User".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: UserModel::metadata().clone(),
-                        related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
                         related_keys: vec!["id_user".to_string()],
-                        navigation_property: "User".to_string(),
                     },
                 );
 

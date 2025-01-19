@@ -1,12 +1,12 @@
 use serde_json::Value;
 
-use crate::features::user_authentication_type::models::UserAuthenticationTypeModel;
+use crate::features::user_authentication_type::models::Model;
 use crate::dto::query_params::QueryParams;
 use crate::database::{Database, DatabaseType};
 
-pub struct UserAuthenticationTypeRepository;
+pub struct Repository;
 
-impl UserAuthenticationTypeRepository {
+impl Repository {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
@@ -14,10 +14,25 @@ impl UserAuthenticationTypeRepository {
         
         match db {
             DatabaseType::Mssql(mssql_db) => {
-                mssql_db.execute::<UserAuthenticationTypeModel>(&options).await.map_err(|e| e.to_string())
+                mssql_db.execute::<Model>(&options).await.map_err(|e| e.to_string())
             }
             DatabaseType::Sqlite(sqlite_db) => {
-                sqlite_db.execute::<UserAuthenticationTypeModel>(&options).await.map_err(|e| e.to_string())
+                sqlite_db.execute::<Model>(&options).await.map_err(|e| e.to_string())
+            }
+        }
+    }
+                                         
+    pub async fn get_count(
+        db: &DatabaseType,
+        options: QueryParams,
+    ) -> Result<Value, String> {
+        
+        match db {
+            DatabaseType::Mssql(mssql_db) => {
+                mssql_db.execute_count::<Model>(&options).await.map_err(|e| e.to_string())
+            }
+            DatabaseType::Sqlite(sqlite_db) => {
+                sqlite_db.execute_count::<Model>(&options).await.map_err(|e| e.to_string())
             }
         }
     }
