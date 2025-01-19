@@ -130,7 +130,7 @@ impl Tokenization {
         let mut last_token = LastToken::None;
 
         let error_with_context = |message: String| -> String {
-            format!("Invalid $orderby: {} [Context: {}]", message, context.borrow())
+            format!("{} [Context: {}]", message, context.borrow())
         };
     
         while let Some(token) = tokens_iter.next() {

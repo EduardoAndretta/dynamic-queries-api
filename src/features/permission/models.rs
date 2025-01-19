@@ -4,16 +4,16 @@ use std::any::TypeId;
 use crate::dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata};
 
 #[derive(Serialize, Deserialize)]
-pub struct PermissionModel {
+pub struct Model {
     pub id_permission: i32,
     pub name_permission: String,
     pub description_permission: String
 
 }
 
-impl Default for PermissionModel {
+impl Default for Model {
     fn default() -> Self {
-        PermissionModel {
+        Model {
             id_permission: 0,
             name_permission: "".to_string(),
             description_permission: "".to_string()
@@ -21,7 +21,7 @@ impl Default for PermissionModel {
     }
 }
 
-impl EntityMetadata for PermissionModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {

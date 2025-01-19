@@ -152,7 +152,7 @@ impl ContextualizerColumnMetadata {
         }
     }
 
-    pub fn new_dynamically(column_name: String, column_type: TypeId, specification: ComputeSpecificationMetadata) -> Self {
+    pub fn new_dynamic(column_name: String, column_type: TypeId, specification: ComputeSpecificationMetadata) -> Self {
         ContextualizerColumnMetadata::Dynamic {
             column_name,
             column_type,

@@ -2,21 +2,52 @@ use actix_web::{web, App, HttpServer};
 use crate::database::DatabaseType;
 
 pub fn configure_services(cfg: &mut web::ServiceConfig) {
+
     cfg.service( crate::features::action::controllers::get);
+    cfg.service( crate::features::action::controllers::get_count);
+    
     cfg.service( crate::features::authentication_type::controllers::get);
+    cfg.service( crate::features::authentication_type::controllers::get_count);
+    
     cfg.service( crate::features::context::controllers::get);
+    cfg.service( crate::features::context::controllers::get_count);
+
     cfg.service( crate::features::fork::controllers::get);
+    cfg.service( crate::features::fork::controllers::get_count);
+
     cfg.service( crate::features::forum::controllers::get);
+    cfg.service( crate::features::forum::controllers::get_count);
+
     cfg.service( crate::features::forum_user_role_permission::controllers::get);
+    cfg.service( crate::features::forum_user_role_permission::controllers::get_count);
+
     cfg.service( crate::features::particular::controllers::get);
+    cfg.service( crate::features::particular::controllers::get_count);
+
     cfg.service( crate::features::particular_user_role_permission::controllers::get);
+    cfg.service( crate::features::particular_user_role_permission::controllers::get_count);
+
     cfg.service( crate::features::permission::controllers::get);
+    cfg.service( crate::features::permission::controllers::get_count);
+
     cfg.service( crate::features::relation::controllers::get);
+    cfg.service( crate::features::relation::controllers::get_count);
+
     cfg.service( crate::features::role::controllers::get);
+    cfg.service( crate::features::role::controllers::get_count);
+
     cfg.service( crate::features::topic::controllers::get);
+    cfg.service( crate::features::topic::controllers::get_count);
+
     cfg.service( crate::features::user_authentication_type::controllers::get);
+    cfg.service( crate::features::user_authentication_type::controllers::get_count);
+
     cfg.service( crate::features::user::controllers::get);
+    cfg.service( crate::features::user::controllers::get_count);
+
     cfg.service( crate::features::user_system::controllers::get);
+    cfg.service( crate::features::user_system::controllers::get_count);
+    
 }
 
 pub async fn run(db: DatabaseType) -> std::io::Result<()> {

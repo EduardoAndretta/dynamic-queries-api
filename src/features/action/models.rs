@@ -2,10 +2,10 @@ use chrono::{NaiveDateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::any::TypeId;
-use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{relation::models::RelationModel, topic::models::TopicModel, user::models::UserModel}};
+use crate::{dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata, RelationshipMetadata, RelationshipType}, features::{relation::models::Model as RelationModel, topic::models::Model as TopicModel, user::models::Model as UserModel}};
 
 #[derive(Serialize, Deserialize)]
-pub struct ActionModel {
+pub struct Model {
     pub id_action: i32,
     pub date_action: NaiveDateTime,
     pub id_user: Option<i32>,
@@ -13,9 +13,9 @@ pub struct ActionModel {
     pub id_topic: Option<i32>
 }
 
-impl Default for ActionModel {
+impl Default for Model {
     fn default() -> Self {
-        ActionModel {
+        Model {
             id_action: 0,
             date_action: Utc.with_ymd_and_hms(0,0,0,0,0,0).unwrap().naive_local(),
             id_user: None,
@@ -25,7 +25,7 @@ impl Default for ActionModel {
     }
 }
 
-impl EntityMetadata for ActionModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {
@@ -76,11 +76,9 @@ impl EntityMetadata for ActionModel {
                     "User".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: UserModel::metadata().clone(),
-                        related_entity: "User".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_user".to_string()],
                         related_keys: vec!["id_user".to_string()],
-                        navigation_property: "User".to_string(),
                     },
                 );
 
@@ -88,11 +86,9 @@ impl EntityMetadata for ActionModel {
                     "Relation".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: RelationModel::metadata().clone(),
-                        related_entity: "Relation".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_relation".to_string()],
                         related_keys: vec!["id_relation".to_string()],
-                        navigation_property: "Relation".to_string(),
                     },
                 );
 
@@ -100,11 +96,9 @@ impl EntityMetadata for ActionModel {
                     "Topic".to_string(),
                     RelationshipMetadata {
                         related_entity_metadata: TopicModel::metadata().clone(),
-                        related_entity: "Topic".to_string(),
                         relationship_type: RelationshipType::ManyToOne,
                         foreign_keys: vec!["id_topic".to_string()],
                         related_keys: vec!["id_topic".to_string()],
-                        navigation_property: "Topic".to_string(),
                     },
                 );
 

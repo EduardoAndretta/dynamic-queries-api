@@ -4,22 +4,22 @@ use std::any::TypeId;
 use crate::dto::metadata::{ColumnMetadata, EntityDescription, EntityMetadata};
 
 #[derive(Serialize, Deserialize)]
-pub struct ContextModel {
+pub struct Model {
     pub id_context: i32,
     pub name_context: String
 
 }
 
-impl Default for ContextModel {
+impl Default for Model {
     fn default() -> Self {
-        ContextModel {
+        Model {
             id_context: 0,
             name_context: "".to_string()
         }
     }
 }
 
-impl EntityMetadata for ContextModel {
+impl EntityMetadata for Model {
     fn metadata() -> &'static EntityDescription {
         lazy_static::lazy_static! {
             static ref METADATA: EntityDescription = {

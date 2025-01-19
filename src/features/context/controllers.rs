@@ -1,5 +1,5 @@
 use actix_web::{get, web, Responder, HttpResponse};
-use crate::features::context::services::ContextService;
+use crate::features::context::services::Service;
 use crate::dto::query_params::QueryParams;
 use crate::database::DatabaseType;
 
@@ -8,7 +8,23 @@ pub async fn get(
     options: web::Query<QueryParams>,
     db: web::Data<DatabaseType>,
 ) -> impl Responder {
-    let result = ContextService::get(&*db, options.into_inner()).await;
+    let result = Service::get(&*db, options.into_inner()).await;
+
+    match result {
+        Ok(data) => HttpResponse::Ok().json(data),
+        Err(err) => {
+            let error_message = format!("Error: {}", err);
+            HttpResponse::BadRequest().body(error_message)
+        }
+    }
+}
+
+#[get("/api/context/$count")]
+pub async fn get_count(
+    options: web::Query<QueryParams>,
+    db: web::Data<DatabaseType>,
+) -> impl Responder {
+    let result = Service::get_count(&*db, options.into_inner()).await;
 
     match result {
         Ok(data) => HttpResponse::Ok().json(data),

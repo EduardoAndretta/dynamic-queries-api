@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use lazy_static::lazy_static;
 
-use crate::database::mssql::common::context::contextualizer::ContextualizerEntityDescription;
 use crate::services::query::common::alias_manager::QueryAliasManager;
-use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ComputeArithmeticOperation, ComputeOperation, ComputeSpecificationMetadata};
+use crate::database::sqlite::common::context::contextualizer::{ContextualizerColumnMetadata, ComputeArithmeticOperation, ComputeOperation};
 use crate::services::query::database::sqlite::common::tokens::filter::token::Operation;
 
 #[derive(Hash, Eq, PartialEq, Debug)]
