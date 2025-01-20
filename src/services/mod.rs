@@ -26,6 +26,18 @@ pub mod query {
                         pub mod token;
                     }
                 }
+
+                // [Specific module the handle internal specifications]
+                pub mod internal_specification {
+                    pub mod internal_specification;
+
+                    pub mod select {
+                        pub mod internal_specification;
+                    }
+                    pub mod compute {
+                        pub mod internal_specification;
+                    }
+                }
             }
 
             pub mod operations {
@@ -54,10 +66,6 @@ pub mod query {
 
                 pub mod count {
                     pub mod count;
-                  
-                    pub mod context {
-                        pub mod context;
-                    }
                 }
 
                 pub mod select {

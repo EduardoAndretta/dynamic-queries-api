@@ -3,6 +3,8 @@ use crate::dto::query_params::QueryParams;
 
 use crate::database::sqlite::common::context::contextualizer::ContextualizerMetadata;
 
+use crate::services::query::database::sqlite::common::internal_specification::internal_specification::InternalSpecification;
+
 use crate::services::query::database::sqlite::operations::compute::compute::Compute;
 use crate::services::query::database::sqlite::operations::count::count::Count;
 use crate::services::query::database::sqlite::operations::select::select::Select;
@@ -22,6 +24,12 @@ impl Query {
         contextualizer: &mut ContextualizerMetadata,
     ) -> Result<String, String> {
 
+        // [$count (With internal-specification changes)]
+        Count::process(options.count.as_ref(), contextualizer)?;
+
+        // [internal-specification]
+        InternalSpecification::process_internal_specification(contextualizer)?;
+
         // [$expand (With context changes)]
         let expand_text = Expand::process(options.expand.as_deref(), query_alias_manager, contextualizer)?;
 
@@ -38,71 +46,16 @@ impl Query {
         let orderby_text = Orderby::process(options.orderby.as_deref(), query_alias_manager, contextualizer)?;
 
         // [$top (Without context changes)]
-        let mut top_text: String = String::from("");
-        if let Some(text) = &options.top {
-            top_text = Top::process(text)?;
-        }
+        let top_text = Top::process(options.top.as_ref(), contextualizer)?;
 
         // [$skip (Without context changes)]
-        let mut skip_text: String = String::from("");
-        if let Some(text) = &options.skip {
-            skip_text = Skip::process(text)?;
-        }
+        let skip_text = Skip::process(options.skip.as_ref(), contextualizer)?;
 
         let mut sql = String::with_capacity(
-            select_text.len() + expand_text.len() + filter_text.len() + orderby_text.len() + top_text.len() + skip_text.len() + 4,
+            select_text.len() + expand_text.len() + filter_text.len() + orderby_text.len() + top_text.len() + skip_text.len() + 6,
         );
         
         for text in [select_text, expand_text, filter_text, orderby_text, top_text, skip_text] {
-            if !text.is_empty() {
-                if !sql.is_empty() {
-                    sql.push('\n');
-                }
-                sql.push_str(text.as_str());
-            }
-        }
-
-        println!("\n{}", sql);
-        
-        Ok(sql)
-    }  
-
-    pub fn build_query_count(
-        &self,
-        options: &QueryParams,
-        query_alias_manager: &mut QueryAliasManager,
-        contextualizer: &mut ContextualizerMetadata,
-    ) -> Result<String, String> {
-
-        // [$expand (With context changes)]
-        let expand_text = Expand::process(options.expand.as_deref(), query_alias_manager, contextualizer)?;
-
-        // [$compute (With context changes)]
-        Compute::process(options.compute.as_deref(), contextualizer)?;
-
-        // [$count (SELECT) (With context changes)]
-        let count_text = Count::process(query_alias_manager, contextualizer)?;
-
-        // [$filter (Without context changes)]
-        let filter_text = Filter::process(options.filter.as_deref(), query_alias_manager, contextualizer)?;
-
-        // [$top (Without context changes)]
-        let mut top_text: String = String::from("");
-        if let Some(text) = &options.top {
-            top_text = Top::process(text)?;
-        }
-
-        // [$skip (Without context changes)]
-        let mut skip_text: String = String::from("");
-        if let Some(text) = &options.skip {
-            skip_text = Skip::process(text)?;
-        }
-
-        let mut sql = String::with_capacity(
-            count_text.len() + expand_text.len() + filter_text.len() + top_text.len() + skip_text.len() + 4,
-        );
-        
-        for text in [count_text, expand_text, filter_text, top_text, skip_text] {
             if !text.is_empty() {
                 if !sql.is_empty() {
                     sql.push('\n');

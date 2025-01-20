@@ -1,10 +1,37 @@
-use std::{any::TypeId, collections::HashMap};
+use std::{any::TypeId, collections::{HashMap, HashSet}, hash::Hash};
 
 use crate::dto::metadata::{EntityDescription, RelationshipMetadata, RelationshipType};
+
+
+#[derive(Debug, Clone)]
+pub enum ContextualizerMetadataFlow {
+    Ordinary,
+    Count
+}
 
 #[derive(Debug, Clone)]
 pub struct ContextualizerMetadata {
     metadata: ContextualizerEntityDescription,
+
+    pub ignore_rules: ContextualizerMetadataIgnoreRules,
+
+    // [Flow / Type of requested query]
+    pub flow: ContextualizerMetadataFlow,
+
+    // [Internal Specification for specific cases]
+    pub internal_sepecifications: ContextualizerInternalSpecification,
+}
+
+#[derive(Debug, Clone)]
+pub struct ContextualizerMetadataIgnoreRules {
+    pub select: bool,
+    pub filter: bool,
+    pub expand: bool,
+    pub compute: bool,
+    pub count: bool,
+    pub orderby: bool,
+    pub top: bool,
+    pub skip: bool,
 }
 
 impl ContextualizerMetadata {
@@ -26,6 +53,24 @@ impl ContextualizerMetadata {
                 columns,
                 relationships,
             },
+
+            flow: ContextualizerMetadataFlow::Ordinary,
+
+            internal_sepecifications: ContextualizerInternalSpecification {
+                standalone: HashSet::new(),
+                collective: HashSet::new()
+            },
+
+            ignore_rules: ContextualizerMetadataIgnoreRules {
+                select: false,
+                filter: false,
+                expand: false,
+                compute: false,
+                count: false,
+                orderby: false,
+                top: false,
+                skip: false
+            }
         }
     }
 
@@ -152,14 +197,6 @@ impl ContextualizerColumnMetadata {
         }
     }
 
-    pub fn new_dynamic(column_name: String, column_type: TypeId, specification: ComputeSpecificationMetadata) -> Self {
-        ContextualizerColumnMetadata::Dynamic {
-            column_name,
-            column_type,
-            specification
-        }
-    }
-
     pub fn column_name(&self) -> &String {
         match self {
             ContextualizerColumnMetadata::Original { column_name, .. } => column_name,
@@ -174,6 +211,33 @@ impl ContextualizerColumnMetadata {
         }
     }
 }
+
+// [Internal Specification] 
+// [Specific situations like $count=true, that needs to set a property standalone in the response model to show the total count]
+
+#[derive(Debug, Clone)]
+pub struct ContextualizerInternalSpecification {
+    pub standalone: HashSet<StandaloneInternalSpecification>,
+    pub collective: HashSet<CollectiveInternalSpecification>,
+}
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub struct StandaloneInternalSpecification {
+    pub specification_attribute: String,
+    pub column_name: String,
+    pub column_type: TypeId,
+    pub default_value: String,
+}
+
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
+pub struct CollectiveInternalSpecification {
+    pub specification_attribute: String,
+    pub column_name: String,
+    pub column_type: TypeId,
+    pub default_value: String,
+}
+
+// [Internal Specification] //
 
 impl Default for ContextualizerColumnMetadata {
     fn default() -> Self {
@@ -206,5 +270,5 @@ pub struct ContextualizerRelationshipMetadata {
 pub struct ContextualizerEntityDescription {
     pub table_name: String,
     pub columns: HashMap<String, ContextualizerColumnMetadata>,
-    pub relationships: HashMap<String, ContextualizerRelationshipMetadata>,
+    pub relationships: HashMap<String, ContextualizerRelationshipMetadata>
 }

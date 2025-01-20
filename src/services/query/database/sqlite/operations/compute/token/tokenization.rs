@@ -287,7 +287,7 @@ impl Tokenization {
         let alias_name_regex = Regex::new(r"^[A-Za-z0-9-_]+$").unwrap();
         
         if !alias_name_regex.is_match(alias_name) {
-            return Err(format!("Invalid alias name '{}'. [A-Za-z0-9-_]", alias_name));
+            return Err(format!("Invalid computed alias name '{}'. [A-Za-z0-9-_]", alias_name));
         }
 
         Ok(())
@@ -389,11 +389,11 @@ impl Tokenization {
                             };
 
                             if metadata.columns.contains_key(alias_name) {
-                                return Err(error_with_context(format!("The alias '{}' is reserved for an original table field with the same name.", alias_name)));
+                                return Err(error_with_context(format!("The computed alias '{}' is reserved for an original table field with the same name.", alias_name)));
                             }
                         
                             if previous_alias.contains(alias_name) {
-                                return Err(error_with_context(format!("The alias '{}' is already mapped.", alias_name)));
+                                return Err(error_with_context(format!("The computed alias '{}' is already mapped.", alias_name)));
                             }
                             previous_alias.insert(alias_name.clone());
 

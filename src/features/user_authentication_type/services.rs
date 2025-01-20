@@ -9,7 +9,7 @@ impl Service {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
-    ) -> Result<Vec<Value>, String> {
+    ) -> Result<Value, String> {
         
         Repository::get(db, options).await
     }

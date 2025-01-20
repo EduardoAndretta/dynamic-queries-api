@@ -16,5 +16,6 @@ pub struct QueryParams {
     pub expand: Option<String>,
     #[serde(rename = "$compute")]
     pub compute: Option<String>,
+    #[serde(rename = "$count")]
+    pub count: Option<bool>,
 }
-

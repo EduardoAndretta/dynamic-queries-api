@@ -153,14 +153,11 @@ impl Context {
                                         });
                                 }
                             }
-
                         }
                     }
-
                 }
             }
         }
-
         contextualizer.update_context(metadata.clone());
 
         Ok(())

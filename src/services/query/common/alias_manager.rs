@@ -2,18 +2,32 @@ use std::collections::HashMap;
 
 pub struct QueryAliasManager {
     table_alias_map: HashMap<String, String>,
-    field_alias_map: HashMap<String, String>,
     table_counter: usize,
+
+    field_alias_map: HashMap<String, String>,
     field_counter: usize,
+
+    internal_sepecification_standalone_field_counter: usize,
+    internal_sepecification_standalone_field_alias_map: HashMap<String, String>,
+
+    internal_sepecification_collective_field_counter: usize,
+    internal_sepecification_collective_field_alias_map: HashMap<String, String>,
 }
 
 impl QueryAliasManager {
     pub fn new() -> Self {
         Self {
             table_alias_map: HashMap::new(),
-            field_alias_map: HashMap::new(),
             table_counter: 0,
+
+            field_alias_map: HashMap::new(),
             field_counter: 0,
+
+            internal_sepecification_standalone_field_alias_map: HashMap::new(),
+            internal_sepecification_standalone_field_counter: 0,
+
+            internal_sepecification_collective_field_alias_map: HashMap::new(),
+            internal_sepecification_collective_field_counter: 0,
         }
     }
 
@@ -27,12 +41,32 @@ impl QueryAliasManager {
             .clone()
     }
 
-    pub fn get_or_create_field_alias(&mut self, nested_path: &str) -> String {
+    pub fn get_or_create_field_alias(&mut self, field: &str) -> String {
         self.field_alias_map
-            .entry(nested_path.to_string())
+            .entry(field.to_string())
             .or_insert_with(|| {
                 self.field_counter += 1;
                 format!("f{}", self.field_counter)
+            })
+            .clone()
+    }
+
+    pub fn get_or_create_internal_specification_collective_field_alias(&mut self, field: &str) -> String {
+        self.internal_sepecification_collective_field_alias_map
+            .entry(field.to_string())
+            .or_insert_with(|| {
+                self.internal_sepecification_collective_field_counter += 1;
+                format!("is-c{}", self.internal_sepecification_collective_field_counter)
+            })
+            .clone()
+    }
+
+    pub fn get_or_create_internal_specification_standalone_field_alias(&mut self, field: &str) -> String {
+        self.internal_sepecification_standalone_field_alias_map
+            .entry(field.to_string())
+            .or_insert_with(|| {
+                self.internal_sepecification_standalone_field_counter += 1;
+                format!("is-s{}", self.internal_sepecification_standalone_field_counter)
             })
             .clone()
     }

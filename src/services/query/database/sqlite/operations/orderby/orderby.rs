@@ -18,21 +18,48 @@ impl Orderby {
             format!("Invalid $orderby: {}", message)
         };
 
-        let mut sql: String = String::from("");
+        let mut properties: Vec<String> = Vec::new();
 
-        if let Some(text) = text {
-            let tokens = match Tokenization::tokenize(text, contextualizer) {
-                Err(err) => return Err(error(err)),
-                Ok(value) => value
-            };
+        // [Handle the Internal Specification here]
 
-            sql = match Self::process_with_tokens(&tokens, alias_manager) {
+        if !contextualizer.ignore_rules.orderby {
+            if let Some(text) = text {
+                let tokens = match Tokenization::tokenize(text, contextualizer) {
+                    Err(err) => return Err(error(err)),
+                    Ok(value) => value
+                };
+    
+                properties.extend(
+                    match Self::process_with_tokens(&tokens, alias_manager) {
+                        Err(err) => return Err(error(err)),
+                        Ok(value) => value
+                    });
+
+                // [There no changes in context for while...]
+            }
+        }
+
+        let mut sql = String::new();
+
+        if !properties.is_empty() {
+
+            sql = match Self::build_string_statement(&properties) {
                 Err(err) => return Err(error(err)),
                 Ok(value) => value
             };
         }
 
-        // [There no changes in context for while...]
+        Ok(sql)
+
+    }
+
+    fn build_string_statement(properties: &Vec<String>) -> Result<String, String> {
+
+        let mut sql: String = String::new();
+
+        sql.push_str("ORDER BY\n");
+
+        sql.push_str(&properties.join(", "));
 
         Ok(sql)
     }
@@ -40,13 +67,9 @@ impl Orderby {
     fn process_with_tokens(
         tokens: &[Token],
         alias_manager: &mut QueryAliasManager,
-    ) -> Result<String, String> {
+    ) -> Result<Vec<String>, String> {
         
-        let mut sql: String = String::new();
-
-        let mut properties = Vec::new();
-           
-        sql.push_str("ORDER BY\n");
+        let mut properties: Vec<String> = Vec::new();
 
         for token in tokens {
             match token {
@@ -69,11 +92,7 @@ impl Orderby {
             }
         }
 
-        sql.push_str(&properties.join(", "));
-
-        sql.push_str("\n");
-
-        Ok(sql.clone())
+        Ok(properties)
     }
 
 }

@@ -1,5 +1,4 @@
-use crate::database::sqlite::common::context::contextualizer::ContextualizerMetadata;
-use crate::services::query::database::sqlite::common::tokens::compute::token::Token;
+use crate::{database::sqlite::common::context::contextualizer::ContextualizerMetadata, services::query::database::sqlite::common::internal_specification::compute::internal_specification::InternalSpecification};
 
 use super::{token::tokenization::Tokenization, context::context::Context};
 
@@ -15,16 +14,22 @@ impl Compute {
             format!("Invalid $compute: {}", message)
         };
 
-        let mut tokens: Vec<Token> = Vec::new();
+        if !contextualizer.ignore_rules.compute {
+            if let Some(text) = text {
+                let tokens = match Tokenization::tokenize(text, contextualizer) {
+                    Err(err) => return Err(error(err)),
+                    Ok(value) => value
+                };
 
-        if let Some(text) = text {
-            tokens = match Tokenization::tokenize(text, contextualizer) {
-                Err(err) => return Err(error(err)),
-                Ok(value) => value
-            };
+                match Context::resolve_context(&tokens, contextualizer){
+                    Err(err) => return Err(error(err)),
+                    Ok(value) => value
+                };
+            }   
         }
 
-        match Context::resolve_context(&tokens, contextualizer){
+        // [internal-specification]
+        match InternalSpecification::process_internal_specification(contextualizer) {
             Err(err) => return Err(error(err)),
             Ok(value) => value
         };

@@ -10,30 +10,14 @@ impl Repository {
     pub async fn get(
         db: &DatabaseType,
         options: QueryParams,
-    ) -> Result<Vec<Value>, String> {
-        
-        match db {
-            DatabaseType::Mssql(mssql_db) => {
-                mssql_db.execute::<Model>(&options).await.map_err(|e| e.to_string())
-            }
-            DatabaseType::Sqlite(sqlite_db) => {
-                sqlite_db.execute::<Model>(&options).await.map_err(|e| e.to_string())
-            }
-        }
+    ) -> Result<Value, String> {
+        db.execute::<Model>(&options).await.map_err(|e| e.to_string())
     }
-                                     
+    
     pub async fn get_count(
         db: &DatabaseType,
         options: QueryParams,
     ) -> Result<Value, String> {
-        
-        match db {
-            DatabaseType::Mssql(mssql_db) => {
-                mssql_db.execute_count::<Model>(&options).await.map_err(|e| e.to_string())
-            }
-            DatabaseType::Sqlite(sqlite_db) => {
-                sqlite_db.execute_count::<Model>(&options).await.map_err(|e| e.to_string())
-            }
-        }
+        db.execute_count::<Model>(&options).await.map_err(|e| e.to_string())
     }
 }
