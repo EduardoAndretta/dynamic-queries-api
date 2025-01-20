@@ -104,11 +104,7 @@ pub enum PropertyType {
     Property {
         metadata: ContextualizerColumnMetadata,
         key: String
-    },
-    UnknowProperty {
-        name: String,
-        key: String
-    },
+    }
 }
 
 impl PropertyType {
@@ -122,9 +118,5 @@ impl PropertyType {
 
     pub fn new_property(metadata: ContextualizerColumnMetadata, key: String) -> Self {
         PropertyType::Property { metadata, key }
-    }
-
-    pub fn new_unknow_property(name: String, key: String) -> Self {
-        PropertyType::UnknowProperty { name, key }
     }
 }

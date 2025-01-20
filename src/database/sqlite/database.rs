@@ -1,7 +1,8 @@
 use std::any::TypeId;
+use std::collections::HashMap;
 use serde_json::{Map, Value};
 use sqlx::sqlite::{SqlitePool, SqliteRow};
-use sqlx::{Column, Row, TypeInfo};
+use sqlx::{Column, Row};
 use chrono::{NaiveDate, NaiveDateTime};
 
 use crate::services::query::common::alias_manager::QueryAliasManager;
@@ -10,13 +11,35 @@ use crate::dto::metadata::{ColumnMetadata, EntityMetadata};
 
 use crate::services::query::database::sqlite::query::Query;
 
+use super::common::context::contextualizer::{ContextualizerMetadataFlow, ContextualizerMetadataIgnoreRules, StandaloneInternalSpecification};
 use super::common::context::{contextualizer::ContextualizerMetadata, mapping::metadata_mapping::{DynamicStruct, PropertyType}};
+
+macro_rules! cast_to_type {
+    ($value:expr, $target:ty) => {
+        $value.parse::<$target>().ok()
+    };
+}
 
 pub struct Database(pub SqlitePool);
 
 impl crate::database::Database for Database {
-    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String> {      
+    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {      
         let mut contextualizer = ContextualizerMetadata::new(T::metadata().clone());
+
+        // [ignore-rules]
+        contextualizer.ignore_rules = ContextualizerMetadataIgnoreRules {
+            select: false,
+            filter: false,
+            expand: false,
+            compute: false,
+            count: false,
+            orderby: false,
+            top: false,
+            skip: false,
+        };
+
+        // [flow]
+        contextualizer.flow = ContextualizerMetadataFlow::Ordinary;
 
         let mut alias_manger = QueryAliasManager::new();
 
@@ -29,43 +52,77 @@ impl crate::database::Database for Database {
 
         let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
 
-        let mut results = Vec::new();
-    
-        for row in rows {
+        let mut data = Vec::new();
+
+        for row in &rows {
             let mut json_row = Map::new();
     
-            // Parse and populate fields
-            Self::parse_and_populate_fields(&row, &properties_hierarchy, &mut json_row);
+            // [Parse and populate fields]
+            Self::parse_and_populate_fields(&row, &properties_hierarchy, &mut json_row, &mut alias_manger, &contextualizer)?;
     
-            results.push(Value::Object(json_row));
+            if !json_row.is_empty() {
+                data.push(Value::Object(json_row));
+            }
         }
-    
-        Ok(results)
+
+        let mut json_row = Map::new();
+
+        // [Handle standalone internal-specification]
+        Self::parse_and_populate_internal_specification_standalone(rows.first(), &mut json_row, &contextualizer, &mut alias_manger)?;
+
+        json_row.insert(String::from("data"), Value::from(data));
+        
+        Ok(Value::Object(json_row))
     }
 
     async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {   
         let mut contextualizer = ContextualizerMetadata::new(T::metadata().clone());
 
+        // [ignore-rules]
+        contextualizer.ignore_rules = ContextualizerMetadataIgnoreRules {
+            select: true,
+            filter: false,
+            expand: false,
+            compute: false,
+            count: true,
+            orderby: true,
+            top: false,
+            skip: false,
+        };
+
+        // [flow]
+        contextualizer.flow = ContextualizerMetadataFlow::Count;
+
         let mut alias_manger = QueryAliasManager::new();
 
-        let query = Query.build_query_count(options, &mut alias_manger, &mut contextualizer)?;
+        let query = Query.build_query(options, &mut alias_manger, &mut contextualizer)?;
         
         let rows = sqlx::query(&query)
             .fetch_all(&self.0)
             .await
             .map_err(|e| format!("Error executing query: {}", e))?;
 
-        if rows.is_empty() {
-            return Err("No rows returned from query".to_string());
-        }
-
         let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
 
+        let mut data = Vec::new();
+
+        for row in &rows {
+            let mut json_row = Map::new();
+    
+            // [Parse and populate fields]
+            Self::parse_and_populate_fields(&row, &properties_hierarchy, &mut json_row, &mut alias_manger, &mut contextualizer)?;
+
+            if !json_row.is_empty() {
+                data.push(Value::Object(json_row));
+            }
+        }
+
         let mut json_row = Map::new();
-        Self::parse_and_populate_fields(&rows[0], &properties_hierarchy, &mut json_row);
+
+        // [Handle standalone internal-specification]
+        Self::parse_and_populate_internal_specification_standalone(rows.first(), &mut json_row, &contextualizer, &mut alias_manger)?;
 
         Ok(Value::Object(json_row))
-    
     }
 }
 
@@ -110,12 +167,6 @@ impl Database {
                             PropertyType::new_property(column_metadata.clone(), real_name.to_string()),
                         );
                     }
-                } else if added_keys.insert(parts[0].to_string()) {
-                    
-                    properties_hierarchy.add_property(
-                        parts[0],
-                        PropertyType::new_unknow_property(parts[0].to_string(), real_name.to_string()),
-                    );
                 }
             } else {
 
@@ -133,11 +184,6 @@ impl Database {
                                     PropertyType::new_property(column_metadata.clone(), real_name.to_string()),
                                 );
                             }
-                        } else if added_keys.insert(full_path.clone()) {
-                            properties_hierarchy.add_property(
-                                &full_path,
-                                PropertyType::new_unknow_property(part.to_string(), real_name.to_string()),
-                            );
                         }
                     } else {
 
@@ -150,14 +196,7 @@ impl Database {
                         if let Some(relation) = current_metadata.relationships.get(*part) {
                             current_metadata = relation.related_entity_metadata.clone();
                         } else {
-
-                            if added_keys.insert(key_path.clone()) {
-                                properties_hierarchy.add_property(
-                                    &key_path,
-                                    PropertyType::new_unknow_property(part.to_string(), real_name.to_string()),
-                                );
-                            }
-                            break;
+                            continue;
                         }
     
                         if added_keys.insert(key_path.clone()) {
@@ -176,9 +215,14 @@ impl Database {
     
     fn populate_relational_fields(
         row: &SqliteRow,
-        hierarchy: &std::collections::HashMap<String, PropertyType>,
-        json_row: &mut serde_json::Map<String, serde_json::Value>,
-    ) {
+        hierarchy: &HashMap<String, PropertyType>,
+        json_row: &mut Map<String, Value>,
+        alias_manager: &mut QueryAliasManager,
+        contextualizer: &ContextualizerMetadata,
+    ) -> Result<(), String> {
+
+        let exist_collective_internal_specification = !contextualizer.internal_sepecifications.collective.is_empty();
+
         for (key, property) in hierarchy {
             match property {
                 PropertyType::Property { metadata, key } => {
@@ -195,29 +239,34 @@ impl Database {
                 }
                 PropertyType::RelationalProperty { properties, .. } => { 
 
-                    let mut nested_json: Map<String, Value> = serde_json::Map::new();
+                    let mut nested_json: Map<String, Value> = Map::new();
 
-                    Self::populate_relational_fields(row, properties, &mut nested_json);
+                    Self::populate_relational_fields(row, properties, &mut nested_json, alias_manager, contextualizer)?;
                     
                     if !nested_json.is_empty() {
-                        json_row.insert(key.clone(), serde_json::Value::Object(nested_json));
-                    }
-                }
-                PropertyType::UnknowProperty { key, .. } => {
-
-                    if let Some(value) = Self::fetch_column_value_with_row(row, key) {
-                        json_row.insert(key.clone(), value);
+                        json_row.insert(key.clone(), Value::Object(nested_json));
                     }
                 }
             }
+
+            if exist_collective_internal_specification {
+                Self::parse_and_populate_internal_specification_collective(row, json_row, contextualizer, alias_manager)?;
+            }
         }
+
+        Ok(())
     }
     
     fn parse_and_populate_fields(
         row: &SqliteRow,
         hierarchy: &DynamicStruct,
-        json_row: &mut serde_json::Map<String, serde_json::Value>,
-    ) {
+        json_row: &mut Map<String, Value>,
+        alias_manager: &mut QueryAliasManager,
+        contextualizer: &ContextualizerMetadata,
+    ) -> Result<(), String> {
+
+        let exist_collective_internal_specification = !contextualizer.internal_sepecifications.collective.is_empty();
+
         for (key, property) in &hierarchy.fields {
             match property {
                 PropertyType::Property { metadata, key } => {
@@ -234,56 +283,107 @@ impl Database {
                 }
                 PropertyType::RelationalProperty { properties, .. } => {
 
-                    let mut nested_json: Map<String, Value> = serde_json::Map::new();
+                    let mut nested_json: Map<String, Value> = Map::new();
                     
-                    Self::populate_relational_fields(row, properties, &mut nested_json);
+                    Self::populate_relational_fields(row, properties, &mut nested_json, alias_manager, contextualizer)?;
                     
                     if !nested_json.is_empty() {
-                        json_row.insert(key.clone(), serde_json::Value::Object(nested_json));
+                        json_row.insert(key.clone(), Value::Object(nested_json));
                     }
                 }
-                PropertyType::UnknowProperty { key , ..} => {
-                    
-                    if let Some(value) = Self::fetch_column_value_with_row(row, key) {                       
-                        json_row.insert(key.clone(), value);
-                    }
-                }
+            }
+
+            if exist_collective_internal_specification {
+                Self::parse_and_populate_internal_specification_collective(row, json_row, contextualizer, alias_manager)?;
             }
         }
+
+        Ok(())
+    }
+
+    fn parse_and_populate_internal_specification_standalone(
+        row: Option<&SqliteRow>,
+        json_row: &mut Map<String, Value>,
+        contextualizer: &ContextualizerMetadata,
+        alias_manager: &mut QueryAliasManager,
+    ) -> Result<(), String> {
+    
+        let internal_specifications = &contextualizer.internal_sepecifications.standalone;
+    
+        for internal_specification in internal_specifications {
+            if let Some(row) = row {
+                let internal_specification_field_alias = alias_manager.get_or_create_internal_specification_standalone_field_alias(&internal_specification.column_name);
+
+                if let Some(value) = Self::fetch_column_value_with_type(row, &internal_specification.column_type, &internal_specification_field_alias) {
+                    json_row.insert(internal_specification.column_name.to_string(), value);
+                    continue;
+                }
+            }
+
+            if let Some(value) = Self::convert_value(&internal_specification.column_type, &internal_specification.default_value) {
+                json_row.insert(internal_specification.column_name.to_string(), value);
+            }
+        }
+        Ok(())
+    }
+
+    fn parse_and_populate_internal_specification_collective(
+        row: &SqliteRow,
+        json_row: &mut Map<String, Value>,
+        contextualizer: &ContextualizerMetadata,
+        alias_manager: &mut QueryAliasManager,
+    ) -> Result<(), String> {
+   
+        let internal_specifications = &contextualizer.internal_sepecifications.collective;
+    
+        for internal_specification in internal_specifications {
+            let internal_specification_field_alias = alias_manager.get_or_create_internal_specification_collective_field_alias(&internal_specification.column_name);
+
+            if let Some(value) = Self::fetch_column_value_with_type(row, &internal_specification.column_type, &internal_specification_field_alias) {
+                json_row.insert(internal_specification.column_name.to_string(), value);
+                continue;
+            }
+
+            if let Some(value) = Self::convert_value(&internal_specification.column_type, &internal_specification.default_value) {
+                json_row.insert(internal_specification.column_name.to_string(), value);
+            }
+        }
+        Ok(())
     }
      
-    fn fetch_column_value_with_row(row: &SqliteRow, column_name: &str) -> Option<serde_json::Value> {
-        
-        // [Get the column type name as a String]
-        let column_type = row
-            .columns()
-            .iter()
-            .find(|c| c.name() == column_name)
-            .map(|c| c.type_info().name());
-    
-        // [Now match directly against the type name]
-        match column_type.as_deref() {
-            Some("INTEGER") => {
-                row.try_get::<i64, _>(column_name)
-                    .ok()
-                    .map(|v| serde_json::Value::Number(serde_json::Number::from(v)))
-            }
-            Some("REAL") | Some("FLOAT") | Some("NUMERIC") | Some("DECIMAL") => {
-                row.try_get::<f64, _>(column_name)
-                    .ok()
-                    .map(|v| serde_json::Value::Number(serde_json::Number::from_f64(v).unwrap()))
-            }
-            Some("TEXT") => row.try_get::<String, _>(column_name).ok().map(serde_json::Value::String),
-            Some("BOOLEAN") => {
-                row.try_get::<bool, _>(column_name)
-                    .ok()
-                    .map(|v| serde_json::Value::Bool(v))
-            }
-            Some("DATE") | Some("DATETIME") => row.try_get::<String, _>(column_name).ok().map(serde_json::Value::String),
-            _ => {
-                eprintln!("Warning: Unsupported column type for {}", column_name);
-                None
-            }
+    fn convert_value(column_type: &TypeId, default_value: &String) -> Option<serde_json::Value> {
+        match *column_type {
+            t if t == TypeId::of::<i64>() =>  cast_to_type!(default_value, i64).map(serde_json::Value::from),
+            t if t == TypeId::of::<f64,>() => cast_to_type!(default_value, f64).map(serde_json::Value::from),
+            t if t == TypeId::of::<String>() => cast_to_type!(default_value, String).map(serde_json::Value::String),
+            t if t == TypeId::of::<bool>() => cast_to_type!(default_value, bool).map(serde_json::Value::Bool),
+            _ => None,
+        }
+    }
+
+    fn fetch_column_value_with_type(
+        row: &SqliteRow,
+        column_type: &TypeId,
+        column_name: &str,
+    ) -> Option<serde_json::Value> {
+        match *column_type {
+            t if t == TypeId::of::<i64>() => row
+                .try_get::<i64, _>(column_name)
+                .ok()
+                .map(serde_json::Value::from),
+            t if t == TypeId::of::<f64,>() => row
+                .try_get::<f64, _>(column_name)
+                .ok()
+                .map(serde_json::Value::from),
+            t if t == TypeId::of::<String>() => row
+                .try_get::<String, _>(column_name)
+                .ok()
+                .map(serde_json::Value::String),
+            t if t == TypeId::of::<bool>() => row
+                .try_get::<bool, _>(column_name)
+                .ok()
+                .map(serde_json::Value::Bool),
+            _ => None,
         }
     }
 

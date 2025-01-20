@@ -5,6 +5,22 @@ use crate::dto::metadata::{EntityDescription, RelationshipMetadata, Relationship
 #[derive(Debug, Clone)]
 pub struct ContextualizerMetadata {
     metadata: ContextualizerEntityDescription,
+
+    pub ignore_rules: ContextualizerMetadataIgnoreRules,
+
+    // [Internal Specification for specific cases]
+    pub internal_sepecification: Vec<ContextualizerInternalSpecification>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ContextualizerMetadataIgnoreRules {
+    pub select: bool,
+    pub filter: bool,
+    pub expand: bool,
+    pub compute: bool,
+    pub orderby: bool,
+    pub top: bool,
+    pub skip: bool,
 }
 
 impl ContextualizerMetadata {
@@ -26,6 +42,18 @@ impl ContextualizerMetadata {
                 columns,
                 relationships,
             },
+
+            internal_sepecification: Vec::new(),
+
+            ignore_rules: ContextualizerMetadataIgnoreRules {
+                select: false,
+                filter: false,
+                expand: false,
+                compute: false,
+                orderby: false,
+                top: false,
+                skip: false
+            }
         }
     }
 
@@ -167,6 +195,28 @@ impl ContextualizerColumnMetadata {
     }
 }
 
+// [Internal Specification] 
+// [Specific situations like $count=true, that needs to set a property standalone in the response model to show the total count]
+
+#[derive(Debug, Clone)]
+pub enum ContextualizerInternalSpecification {
+    Select {
+        specification_type: ContextualizerInternalSelectSpecificationType,
+
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum ContextualizerInternalSelectSpecificationType {
+    StandAlone {
+        specification_attribute: String,
+        column_name: String,
+        column_type: TypeId,
+    }
+}
+
+// [Internal Specification] //
+
 impl Default for ContextualizerColumnMetadata {
     fn default() -> Self {
         ContextualizerColumnMetadata::Original {
@@ -198,5 +248,5 @@ pub struct ContextualizerRelationshipMetadata {
 pub struct ContextualizerEntityDescription {
     pub table_name: String,
     pub columns: HashMap<String, ContextualizerColumnMetadata>,
-    pub relationships: HashMap<String, ContextualizerRelationshipMetadata>,
+    pub relationships: HashMap<String, ContextualizerRelationshipMetadata>
 }

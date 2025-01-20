@@ -10,14 +10,25 @@ use crate::dto::metadata::{ColumnMetadata, EntityMetadata};
 
 use crate::services::query::database::mssql::query::Query;
 
+use super::common::context::contextualizer::{ContextualizerInternalSelectSpecificationType, ContextualizerInternalSpecification, ContextualizerMetadataIgnoreRules};
 use super::common::context::{contextualizer::ContextualizerMetadata, mapping::metadata_mapping::{DynamicStruct, PropertyType}};
 
 pub struct Database(pub MssqlPool);
 
 impl crate::database::Database for Database {
-    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String> {   
-        
+    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {      
         let mut contextualizer = ContextualizerMetadata::new(T::metadata().clone());
+
+        // [ignore-rules]
+        contextualizer.ignore_rules = ContextualizerMetadataIgnoreRules {
+            select: false,
+            filter: false,
+            expand: false,
+            compute: false,
+            orderby: false,
+            top: false,
+            skip: false,
+        };
 
         let mut alias_manger = QueryAliasManager::new();
 
@@ -30,45 +41,75 @@ impl crate::database::Database for Database {
 
         let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
 
-        let mut results = Vec::new();
-    
-        for row in rows {
+        let mut data = Vec::new();
+
+        for row in &rows {
             let mut json_row = Map::new();
     
-            // Parse and populate fields
+            // [Parse and populate fields]
             Self::parse_and_populate_fields(&row, &properties_hierarchy, &mut json_row);
     
-            results.push(Value::Object(json_row));
+            data.push(Value::Object(json_row));
         }
-    
-        Ok(results)
+
+        // [Handle Internal Specification]
+        let json = Self::parse_and_populate_internal_specification(&rows, &contextualizer, &data)?;
+
+        Ok(json)
     }
 
     async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {   
-        
         let mut contextualizer = ContextualizerMetadata::new(T::metadata().clone());
+
+        // [ignore-rules]
+        contextualizer.ignore_rules = ContextualizerMetadataIgnoreRules {
+            select: true,
+            filter: false,
+            expand: false,
+            compute: false,
+            orderby: true,
+            top: false,
+            skip: false,
+        };
+
+        // [count-internal-specification]
+        contextualizer.internal_sepecification.push(
+            ContextualizerInternalSpecification::Select { 
+                specification_type: ContextualizerInternalSelectSpecificationType::StandAlone { 
+                    specification_attribute: "COUNT(*)".to_string(), 
+                    column_name: "count".to_string(), 
+                    column_type: TypeId::of::<i64>() 
+                } 
+            }
+        );
 
         let mut alias_manger = QueryAliasManager::new();
 
-        let query = Query.build_query_count(options, &mut alias_manger, &mut contextualizer)?;
+        let query = Query.build_query(options, &mut alias_manger, &mut contextualizer)?;
         
         let rows = sqlx::query(&query)
             .fetch_all(&self.0)
             .await
             .map_err(|e| format!("Error executing query: {}", e))?;
 
-        if rows.is_empty() {
-            return Err("No rows returned from query".to_string());
+        let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
+
+        let mut data = Vec::new();
+
+        for row in &rows {
+            let mut json_row = Map::new();
+    
+            // [Parse and populate fields]
+            Self::parse_and_populate_fields(&row, &properties_hierarchy, &mut json_row);
+    
+            data.push(Value::Object(json_row));
         }
 
-        let properties_hierarchy = Self::parse_properties_hierarchy(&rows, &alias_manger, &mut contextualizer);
-    
-        let mut json_row = Map::new();
-        Self::parse_and_populate_fields(&rows[0], &properties_hierarchy, &mut json_row);
+        // [Handle Internal Specification]
+        let json = Self::parse_and_populate_internal_specification(&rows, &contextualizer, &data)?;
 
-        Ok(Value::Object(json_row))
+        Ok(json)
     }
-    
 }
 
 impl Database {
@@ -252,6 +293,38 @@ impl Database {
                 }
             }
         }
+    }
+
+    fn parse_and_populate_internal_specification(
+        rows: &[MssqlRow],
+        contextualizer: &ContextualizerMetadata,
+        data: &Vec<Value>,
+    ) -> Result<Value, String> {
+        let mut json_map = serde_json::Map::new();
+    
+        let internal_specifications = &contextualizer.internal_sepecification;
+    
+        for internal_specification in internal_specifications {
+            match internal_specification {
+                ContextualizerInternalSpecification::Select { specification_type } => {
+                    match specification_type {
+                        ContextualizerInternalSelectSpecificationType::StandAlone { column_name, .. } => {
+                            if let Some(row) = rows.first() {
+                                if let Some(value) = Self::fetch_column_value_with_row(row, column_name) {
+                                    json_map.insert(column_name.clone(), value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    
+        if !data.is_empty() {
+            json_map.insert(String::from("data"), serde_json::Value::from(data.clone()));
+        }
+    
+        Ok(serde_json::Value::Object(json_map))
     }
      
     fn fetch_column_value_with_row(row: &MssqlRow, column_name: &str) -> Option<serde_json::Value> {

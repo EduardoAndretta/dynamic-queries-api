@@ -30,7 +30,7 @@ pub mod sqlite {
 
 
 pub trait Database {
-    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String>;
+    async fn execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String>;
     async fn execute_count<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String>;
 }
 
@@ -49,7 +49,7 @@ impl Clone for DatabaseType {
 }
 
 impl Database for DatabaseType {
-    async fn  execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Vec<Value>, String> {
+    async fn  execute<T: EntityMetadata>(&self, options: &QueryParams) -> Result<Value, String> {
         match self {
             DatabaseType::Mssql(db) => db.execute::<T>(options).await,
             DatabaseType::Sqlite(db) => db.execute::<T>(options).await

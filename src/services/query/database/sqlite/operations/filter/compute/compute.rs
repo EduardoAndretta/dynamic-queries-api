@@ -59,7 +59,7 @@ impl Compute {
     pub fn process_computed_column(
         column_metadata: &ContextualizerColumnMetadata,
         filter_operation: &Operation,
-        sql: &mut String,
+        properties: &mut Vec<String>,
         alias_manager: &mut QueryAliasManager,
     ) -> Result<(), String> {
 
@@ -83,7 +83,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::Equal);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -92,7 +92,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::NotEqual);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -101,7 +101,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::GreaterThan);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -110,7 +110,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -119,7 +119,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::LessThan);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -128,7 +128,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::LessThanOrEqual);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -137,7 +137,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::Like);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value
                                 ));
@@ -146,7 +146,7 @@ impl Compute {
 
                                 let operator = get_operator(&OperationFilterType::InValues);
 
-                                sql.push_str(&format!(
+                                properties.push(format!(
                                     "([{}].[{}]) {} {}",
                                     original_table, original_column_name, operator, value.join(",")
                                 ));
@@ -178,7 +178,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Equal);
           
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -187,7 +187,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::NotEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -196,7 +196,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -205,7 +205,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -214,7 +214,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -223,7 +223,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -232,7 +232,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Like);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -241,7 +241,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::InValues);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} ({})",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value.join(",")
                                         ));
@@ -263,7 +263,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Equal);
           
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -272,7 +272,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::NotEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -281,7 +281,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -290,7 +290,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -299,7 +299,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -308,7 +308,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -317,7 +317,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Like);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -326,7 +326,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::InValues);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} ({})",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value.join(",")
                                         ));
@@ -348,7 +348,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Equal);
           
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -357,7 +357,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::NotEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -366,7 +366,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -375,7 +375,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -384,7 +384,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -393,7 +393,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -402,7 +402,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Like);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -411,7 +411,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::InValues);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} ({})",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value.join(",")
                                         ));
@@ -433,7 +433,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Equal);
           
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -442,7 +442,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::NotEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -451,7 +451,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -460,7 +460,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -469,7 +469,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -478,7 +478,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -487,7 +487,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Like);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -496,7 +496,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::InValues);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} ({})",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value.join(",")
                                         ));
@@ -518,7 +518,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Equal);
           
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -527,7 +527,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::NotEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -536,7 +536,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -545,7 +545,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -554,7 +554,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThan);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -563,7 +563,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::LessThanOrEqual);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -572,7 +572,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::Like);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} {}",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value
                                         ));
@@ -581,7 +581,7 @@ impl Compute {
                                     
                                         let filter_operator = get_operator(&OperationFilterType::InValues);
                                     
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "([{}].[{}] {} [{}].[{}]) {} ({})",
                                             left_operand_table, left_operand_column_name, operator, right_operand_table, right_operand_column_name, filter_operator, value.join(",")
                                         ));

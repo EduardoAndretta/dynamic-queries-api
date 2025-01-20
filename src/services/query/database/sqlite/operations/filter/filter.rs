@@ -48,33 +48,80 @@ impl Filter {
             format!("Invalid $filter: {}", message)
         };
 
-        let mut sql: String = String::from("");
+        let mut properties: Vec<String> = Vec::new();
 
-        if let Some(text) = text {
-            let tokens = match Tokenization::tokenize(text, contextualizer) {
-                Err(err) => return Err(error(err)),
-                Ok(value) => value
-            };
+        // [Handle the Internal Specification here]
 
-            sql = match Self::process_with_tokens(&tokens, alias_manager){
+        if !contextualizer.ignore_rules.filter {
+            if let Some(text) = text {
+
+                let tokens = match Tokenization::tokenize(text, contextualizer) {
+                    Err(err) => return Err(error(err)),
+                    Ok(value) => value
+                };
+    
+                properties.extend(
+                    match Self::process_with_tokens(&tokens, alias_manager) {
+                        Err(err) => return Err(error(err)),
+                        Ok(value) => value
+                    });
+
+                // [There no changes in context for while...]
+            }
+        }
+
+        let mut sql = String::new();
+
+        if !properties.is_empty() {
+
+            sql = match Self::build_string_statement(&properties) {
                 Err(err) => return Err(error(err)),
                 Ok(value) => value
             };
         }
 
-        // [There no changes in context for while...]
-
         Ok(sql)
     }
     
+    fn build_string_statement(properties: &Vec<String>) -> Result<String, String> {
+        let mut sql: String = String::new();
+    
+        sql.push_str("WHERE\n");
+    
+        let mut needs_space = false;
+    
+        for property in properties {
+            match property.as_str() {
+                "(" => {
+                    if needs_space {
+                        sql.push_str(" ");
+                    }
+                    sql.push_str("(");
+                    needs_space = false;
+                }
+                ")" => {
+                    sql.push_str(")");
+                    needs_space = true;
+                }
+                _ => {
+                    if needs_space {
+                        sql.push_str(" ");
+                    }
+                    sql.push_str(property);
+                    needs_space = true;
+                }
+            }
+        }
+    
+        Ok(sql)
+    }
+
     fn process_with_tokens(
         tokens: &[Token],
         alias_manager: &mut QueryAliasManager,
-    ) -> Result<String, String> {
+    ) -> Result<Vec<String>, String> {
         
-        let mut sql: String = String::new();
-           
-        sql.push_str("WHERE\n");
+        let mut properties: Vec<String> = Vec::new();
 
         let get_operator = |operator_type: &OperationFilterType| -> &'static str {
             OPERATORS
@@ -83,41 +130,21 @@ impl Filter {
                 .unwrap()
         };
 
-        let mut needs_space = false;
-
         for token in tokens {
-
-            if needs_space {
-                sql.push(' ');
-
-                needs_space = false;
-            }
-
             match token {
                 Token::Parentheses { parentheses } => {
                     match parentheses {
-                        Parentheses::End => { 
-                            sql.push_str(")");                 
-                        },
-                        Parentheses::Begin => { 
-                            sql.push_str("(");                 
-                  
-                        }
+                        Parentheses::End => properties.push(String::from(")")),
+                        Parentheses::Begin => properties.push(String::from("(")),             
                     }
                 },
                 Token::Increment { increment } => {
-
-                    needs_space = true;
-
                     match increment {
-                        Increment::And => sql.push_str("OR"),
-                        Increment::Or => sql.push_str("AND")
+                        Increment::And => properties.push(String::from("AND")),
+                        Increment::Or => properties.push(String::from("OR"))
                     }
                 },
                 Token::Property { metadata, column_metadata, operation } => {
-                    
-                    needs_space = true;
-
                     match column_metadata {
                         ContextualizerColumnMetadata::Original { column_name, .. } => {
 
@@ -128,7 +155,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::Equal);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -137,7 +164,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::NotEqual);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -146,7 +173,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::GreaterThan);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -155,7 +182,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::GreaterThanOrEqual);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -164,7 +191,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::LessThan);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -173,7 +200,7 @@ impl Filter {
                                         
                                         let operator = get_operator(&OperationFilterType::LessThanOrEqual);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -182,7 +209,7 @@ impl Filter {
                                         
                                         let operator = get_operator(&OperationFilterType::Like);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} {}",
                                             alias, column_name, operator, value
                                         ));
@@ -191,7 +218,7 @@ impl Filter {
 
                                         let operator = get_operator(&OperationFilterType::InValues);
 
-                                        sql.push_str(&format!(
+                                        properties.push(format!(
                                             "[{}].[{}] {} ({})",
                                             alias, column_name, operator, value.join(",")
                                         ));
@@ -199,12 +226,12 @@ impl Filter {
                                 }
                         },
                         ContextualizerColumnMetadata::Dynamic { .. } => { 
-                            Compute::process_computed_column(column_metadata, operation, &mut sql, alias_manager)?
+                            Compute::process_computed_column(column_metadata, operation, &mut properties, alias_manager)?
                         } 
                     }  
                 },
             }
         }
-        Ok(sql.clone())
+        Ok(properties)
     }
 }
